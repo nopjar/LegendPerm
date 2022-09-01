@@ -4,6 +4,7 @@ import com.zaxxer.hikari.HikariConfig;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import net.playlegend.configuration.Config;
 import net.playlegend.exception.ServiceInitializeException;
 import net.playlegend.service.Service;
 
@@ -11,13 +12,13 @@ public class RepositoryService implements Service {
 
     private final Map<Class<? extends Repository>, Repository> repositories;
 
-    public RepositoryService() {
+    public RepositoryService(Config config) {
         this.repositories = new ConcurrentHashMap<>();
 
         // we do not put TableSetupRepository in here on purpose as it should not be used outside
-        HikariConfig config = HikariOperations.loadHikariConfig();
-        this.repositories.put(GroupRepository.class, new GroupRepository(config));
-        this.repositories.put(UserRepository.class, new UserRepository(config));
+        HikariConfig hikariConfig = HikariOperations.loadHikariConfig(config);
+        this.repositories.put(GroupRepository.class, new GroupRepository(hikariConfig));
+        this.repositories.put(UserRepository.class, new UserRepository(hikariConfig));
     }
 
     @Override
