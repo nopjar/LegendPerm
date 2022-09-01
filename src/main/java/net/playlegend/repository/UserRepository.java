@@ -22,13 +22,22 @@ import org.jetbrains.annotations.Nullable;
 public class UserRepository extends Repository {
 
     @Language("MariaDB")
-    private static final String SELECT_USER = """
-            SELECT user.uuid as user_id, user.name as user_name, g.id as group_id, g.name as group_name, g.weight as group_weight, g.prefix as group_prefix, g.suffix as group_suffix, ug.valid_until, gp.permission, gp.type
+    private static final String BASE_SELECT_USER = """
+            SELECT user.uuid as user_id, user.name as user_name, g.name as group_name, g.weight as group_weight, g.prefix as group_prefix, g.suffix as group_suffix, ug.valid_until, gp.permission, gp.type
             FROM user
-            INNER JOIN users_groups ug on user.uuid = ug.user_id
-            INNER JOIN `group` g on ug.group_id = g.id
-            INNER JOIN group_permissions gp on g.id = gp.group_id
+            LEFT JOIN users_groups ug on user.uuid = ug.user_id
+            LEFT JOIN `group` g on ug.group_id = g.name
+            LEFT JOIN group_permissions gp on g.name = gp.group_id
+            """;
+
+    @Language("MariaDB")
+    private static final String SELECT_USER_BY_UUID = BASE_SELECT_USER + """
             WHERE user.uuid = ?;
+            """;
+
+    @Language("MariaDB")
+    private static final String SELECT_USER_BY_NAME = BASE_SELECT_USER + """
+            WHERE user.name = ?;
             """;
 
     @Language("MariaDB")
@@ -56,58 +65,77 @@ public class UserRepository extends Repository {
     }
 
     @Nullable
-    public User selectUser(@NotNull UUID uuid) throws SQLException {
+    public User selectUserByUUID(@NotNull UUID uuid) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(SELECT_USER)) {
+             PreparedStatement statement = connection.prepareStatement(SELECT_USER_BY_UUID)) {
 
             statement.setString(1, uuid.toString());
 
-            try (ResultSet set = statement.executeQuery()) {
-                if (!set.next()) {
-                    return null;
-                }
-
-                String userName = "";
-                List<Group> groups = new ArrayList<>();
-                boolean firstRun = true;
-                // using do-while, so we won't miss the first row in set
-                do {
-                    // load overall information which change not (typically user information)
-                    if (firstRun) {
-                        userName = set.getString("user_name");
-                        firstRun = false;
-                    }
-
-                    // load information about group
-                    Group group;
-                    int groupId = set.getInt("group_id");
-                    // check if group was already loaded once, if not -> fetch overall group information
-                    // otherwise use already fetched data
-                    if ((group = fetchFirst(groups, group1 -> group1.getId() == groupId)) == null) {
-                        String groupName = set.getString("group_name");
-                        int groupWeight = set.getInt("group_weight");
-                        String groupPrefix = set.getString("group_prefix");
-                        String groupSuffix = set.getString("group_suffix");
-
-                        // if validUntil == 0, then it is a permanent group
-                        long validUntil = set.getLong("valid_until");
-                        if (validUntil == 0) {
-                            group = new Group(groupId, groupName, groupWeight, groupPrefix, groupSuffix, new HashSet<>());
-                        } else {
-                            group = new TemporaryGroup(groupId, groupName, groupWeight, groupPrefix, groupSuffix, new HashSet<>(), validUntil);
-                        }
-
-                        groups.add(group);
-                    }
-
-                    Permission permission = new Permission(set.getString("permission"), set.getBoolean("type"));
-                    group.getPermissions().add(permission);
-                } while (set.next());
-
-                return new User(uuid, userName, groups);
-            }
+            return selectUser(statement);
         }
     }
+
+    @Nullable
+    public User selectUserByName(@NotNull String name) throws SQLException {
+        try (Connection connection = getDataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(SELECT_USER_BY_NAME)) {
+
+            statement.setString(1, name);
+
+            return selectUser(statement);
+        }
+    }
+
+    private User selectUser(PreparedStatement statement) throws SQLException {
+        try (ResultSet set = statement.executeQuery()) {
+            if (!set.next()) {
+                return null;
+            }
+
+            UUID uuid = null;
+            String userName = "";
+            List<Group> groups = new ArrayList<>();
+            boolean firstRun = true;
+            // using do-while, so we won't miss the first row in set
+            do {
+                // load overall information which change not (typically user information)
+                if (firstRun) {
+                    uuid = UUID.fromString(set.getString("user_id"));
+                    userName = set.getString("user_name");
+                    firstRun = false;
+                }
+
+                // load information about group
+                Group group;
+                String groupName = set.getString("group_name");
+                if (groupName == null) break; // break out of loop as user does not have any groups!
+
+                // check if group was already loaded once, if not -> fetch overall group information
+                // otherwise use already fetched data
+                if ((group = fetchFirst(groups, g -> g.getName().equals(groupName))) == null) {
+                    int groupWeight = set.getInt("group_weight");
+                    String groupPrefix = set.getString("group_prefix");
+                    String groupSuffix = set.getString("group_suffix");
+
+                    // if validUntil == 0, then it is a permanent group
+                    long validUntil = set.getLong("valid_until");
+                    if (validUntil == 0) {
+                        group = new Group(groupName, groupWeight, groupPrefix, groupSuffix, new HashSet<>());
+                    } else {
+                        group = new TemporaryGroup(groupName, groupWeight, groupPrefix, groupSuffix, new HashSet<>(), validUntil);
+                    }
+
+                    groups.add(group);
+                }
+
+                Permission permission = new Permission(set.getString("permission"), set.getBoolean("type"));
+                group.getPermissions().add(permission);
+            } while (set.next());
+
+            return new User(uuid, userName, groups);
+        }
+    }
+
 
     // finds the first item, if present, which fulfills the predicate
     private <T> T fetchFirst(Collection<T> list, Predicate<T> predicate) {

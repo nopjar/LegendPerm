@@ -15,6 +15,6 @@ public class User {
 
     private final UUID uuid;
     private final String name;
-    private List<Group> groups;
+    private List<Group> groups; // TODO: 02/09/2022 Maybe Set?
 
 }

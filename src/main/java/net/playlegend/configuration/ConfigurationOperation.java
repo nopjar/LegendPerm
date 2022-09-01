@@ -30,7 +30,7 @@ public class ConfigurationOperation {
     }
 
     public YamlConfiguration loadAsYaml() throws IOException {
-        File file = new File(filename, path);
+        File file = new File(path, filename);
         if (!file.exists()) {
             // should not happen as with plugin load the resources are getting copied into the plugin directory
             throw new IOException("Could not find resource in plugin directory!");

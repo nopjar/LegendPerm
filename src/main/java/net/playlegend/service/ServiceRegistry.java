@@ -2,6 +2,7 @@ package net.playlegend.service;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import net.playlegend.command.CommandService;
 import net.playlegend.configuration.Config;
 import net.playlegend.exception.ServiceInitializeException;
 import net.playlegend.repository.RepositoryService;
@@ -14,6 +15,7 @@ public class ServiceRegistry {
         this.services = new ConcurrentHashMap<>();
 
         this.services.put(RepositoryService.class, new RepositoryService(config));
+        this.services.put(CommandService.class, new CommandService());
     }
 
     public void start() throws ServiceInitializeException {

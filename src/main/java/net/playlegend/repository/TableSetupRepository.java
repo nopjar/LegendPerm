@@ -13,13 +13,11 @@ class TableSetupRepository extends Repository {
     @Language("MariaDB")
     private static final String CREATE_GROUP_TABLE = """
             CREATE TABLE IF NOT EXISTS `group` (
-            	`id` INT(11) NOT NULL AUTO_INCREMENT,
             	`name` VARCHAR(50) NOT NULL COLLATE 'utf8mb4_general_ci',
             	`weight` INT(11) NOT NULL DEFAULT '0',
             	`prefix` VARCHAR(50) NOT NULL DEFAULT '' COLLATE 'utf8mb4_general_ci',
             	`suffix` VARCHAR(50) NOT NULL DEFAULT '' COLLATE 'utf8mb4_general_ci',
-            	PRIMARY KEY (`id`) USING BTREE,
-            	UNIQUE INDEX `name` (`name`) USING BTREE
+            	PRIMARY KEY (`name`) USING BTREE
             )
             """;
 
@@ -27,17 +25,18 @@ class TableSetupRepository extends Repository {
     private static final String CREATE_DEFAULT_GROUP = """
             INSERT INTO `group`
             (name, weight) VALUES ('default', 80)
-            ON DUPLICATE KEY UPDATE name = name;
+            ON DUPLICATE KEY UPDATE weight = weight;
             """;
 
     @Language("MariaDB")
     private static final String CREATE_GROUP_PERMISSIONS_TABLE = """
             CREATE TABLE IF NOT EXISTS `group_permissions` (
-            	`group_id` INT(11) NOT NULL,
+            	`group_id` VARCHAR(50) NOT NULL,
             	`permission` VARCHAR(50) NOT NULL COLLATE 'utf8mb4_general_ci',
             	`type` TINYINT(4) NOT NULL DEFAULT '0',
+            	UNIQUE INDEX `group_id` (`group_id`, `permission`) USING BTREE,
             	INDEX `FK__group_2` (`group_id`) USING BTREE,
-            	CONSTRAINT `FK__group_2` FOREIGN KEY (`group_id`) REFERENCES `group` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            	CONSTRAINT `FK__group_2` FOREIGN KEY (`group_id`) REFERENCES `group` (`name`) ON UPDATE NO ACTION ON DELETE CASCADE
             )
             """;
 
@@ -54,11 +53,11 @@ class TableSetupRepository extends Repository {
     private static final String CREATE_USERS_GROUPS_TABLE = """
             CREATE TABLE IF NOT EXISTS `users_groups` (
             	`user_id` VARCHAR(36) NOT NULL COLLATE 'utf8mb4_general_ci',
-            	`group_id` INT(11) NOT NULL,
+            	`group_id` VARCHAR(50) NOT NULL,
             	`valid_until` BIGINT(20) NOT NULL DEFAULT '0',
             	UNIQUE INDEX `user_id` (`user_id`, `group_id`) USING BTREE,
             	INDEX `FK__group` (`group_id`) USING BTREE,
-            	CONSTRAINT `FK__group` FOREIGN KEY (`group_id`) REFERENCES `group` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+            	CONSTRAINT `FK__group` FOREIGN KEY (`group_id`) REFERENCES `group` (`name`) ON UPDATE NO ACTION ON DELETE CASCADE,
             	CONSTRAINT `FK__user` FOREIGN KEY (`user_id`) REFERENCES `user` (`uuid`) ON UPDATE NO ACTION ON DELETE CASCADE
             )
             """;

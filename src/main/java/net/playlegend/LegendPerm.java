@@ -55,7 +55,9 @@ public class LegendPerm extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        this.serviceRegistry.shutdown();
+        if (this.serviceRegistry != null)
+            this.serviceRegistry.shutdown();
+
         getLogger().info("LegendPerm successfully shutdown.");
     }
 
@@ -73,6 +75,10 @@ public class LegendPerm extends JavaPlugin {
 
     public Config getCustomConfig() {
         return customConfig;
+    }
+
+    public ServiceRegistry getServiceRegistry() {
+        return serviceRegistry;
     }
 
 }

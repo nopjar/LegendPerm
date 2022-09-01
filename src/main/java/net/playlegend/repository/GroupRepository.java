@@ -5,7 +5,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.HashSet;
 import java.util.Set;
 import net.playlegend.domain.Group;
@@ -24,23 +23,24 @@ public class GroupRepository extends Repository {
 
     @Language("MariaDB")
     private static final String SELECT_GROUP_BY_NAME = """
-            SELECT `group`.id as group_id, `group`.name as group_name, `group`.weight as group_weight, `group`.prefix as group_prefix, `group`.suffix as group_suffix, gp.permission, gp.type
+            SELECT `group`.name as group_name, `group`.weight as group_weight, `group`.prefix as group_prefix, `group`.suffix as group_suffix, gp.permission, gp.type
             FROM `group`
-            INNER JOIN group_permissions gp on `group`.id = gp.group_id
-            WHERE group_id = ?;
+            INNER JOIN group_permissions gp on `group`.name = gp.group_id
+            WHERE `group`.name = ?;
             """;
 
+    // TODO: 01/09/2022 update prefix and suffix
     @Language("MariaDB")
     private static final String UPDATE_GROUP = """
             UPDATE `group`
-            SET name = ?, weight = ?
-            WHERE id = ?;
+            SET weight = ?
+            WHERE name = ?;
             """;
 
     @Language("MariaDB")
     private static final String DELETE_GROUP = """
             DELETE FROM `group`
-            WHERE id = ?;
+            WHERE name = ?;
             """;
 
     @Language("MariaDB")
@@ -62,7 +62,7 @@ public class GroupRepository extends Repository {
 
     public Group createGroup(String name, int weight, String prefix, String suffix) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(CREATE_GROUP, Statement.RETURN_GENERATED_KEYS)) {
+             PreparedStatement statement = connection.prepareStatement(CREATE_GROUP)) {
 
             statement.setString(1, name);
             statement.setInt(2, weight);
@@ -70,21 +70,16 @@ public class GroupRepository extends Repository {
             statement.setString(4, suffix);
 
             statement.executeUpdate();
-            try (ResultSet set = statement.getGeneratedKeys()) {
-                if (!set.next())
-                    throw new SQLException("Failed to retrieve auto generated key for group: " + name + ":" + weight);
-
-                return new Group(set.getInt(1), name, weight, prefix, suffix, new HashSet<>());
-            }
+            return new Group(name, weight, prefix, suffix, new HashSet<>());
         }
     }
 
     @Nullable
-    public Group selectGroup(int id) throws SQLException {
+    public Group selectGroupByName(String name) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(SELECT_GROUP_BY_NAME)) {
 
-            statement.setInt(1, id);
+            statement.setString(1, name);
 
             try (ResultSet set = statement.executeQuery()) {
                 if (!set.next()) {
@@ -101,7 +96,7 @@ public class GroupRepository extends Repository {
                 do {
                     // load overall information which not change in select (e.g. name of group)
                     if (firstRun) {
-                        groupName = set.getString("group_name");
+                        groupName = set.getString("group_name"); // load name again to ensure case matching
                         groupWeight = set.getInt("group_weight");
                         groupPrefix = set.getString("group_prefix");
                         groupSuffix = set.getString("group_suffix");
@@ -114,7 +109,7 @@ public class GroupRepository extends Repository {
                     permissions.add(new Permission(permissionString, permissionType));
                 } while (set.next());
 
-                return new Group(id, groupName, groupWeight, groupPrefix, groupSuffix, permissions);
+                return new Group(groupName, groupWeight, groupPrefix, groupSuffix, permissions);
             }
         }
     }
@@ -123,9 +118,8 @@ public class GroupRepository extends Repository {
         try (Connection connection = getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(UPDATE_GROUP)) {
 
-            statement.setString(1, group.getName());
-            statement.setInt(2, group.getWeight());
-            statement.setInt(3, group.getId());
+            statement.setInt(1, group.getWeight());
+            statement.setString(2, group.getName());
 
             statement.executeUpdate();
         }
@@ -135,7 +129,7 @@ public class GroupRepository extends Repository {
         try (Connection connection = getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(DELETE_GROUP)) {
 
-            statement.setInt(1, group.getId());
+            statement.setString(1, group.getName());
 
             statement.executeUpdate();
         }
@@ -145,7 +139,7 @@ public class GroupRepository extends Repository {
         try (Connection connection = getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(ADD_PERM_TO_GROUP)) {
 
-            statement.setInt(1, group.getId());
+            statement.setString(1, group.getName());
             statement.setString(2, permission);
             statement.setBoolean(3, mode);
             statement.setBoolean(4, mode);
@@ -158,7 +152,7 @@ public class GroupRepository extends Repository {
         try (Connection connection = getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(REVOKE_PERM_FROM_GROUP)) {
 
-            statement.setInt(1, group.getId());
+            statement.setString(1, group.getName());
             statement.setString(2, permission);
 
             statement.executeUpdate();

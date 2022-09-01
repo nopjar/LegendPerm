@@ -11,8 +11,8 @@ public class TemporaryGroup extends Group {
 
     private long validUntil;
 
-    public TemporaryGroup(int id, String name, int weight, String prefix, String suffix, Set<Permission> permissions, long validUntil) {
-        super(id, name, weight, prefix, suffix, permissions);
+    public TemporaryGroup(String name, int weight, String prefix, String suffix, Set<Permission> permissions, long validUntil) {
+        super(name, weight, prefix, suffix, permissions);
         this.validUntil = validUntil;
     }
 

@@ -30,7 +30,7 @@ public class Config {
         this.mysqlPassword = yamlConfiguration.getString(PATH_MYSQL_PASSWORD, "password");
         this.mysqlDatabase = yamlConfiguration.getString(PATH_MYSQL_DATABASE, "legendperm");
         this.mysqlMaxPoolSize = yamlConfiguration.getInt(PATH_MYSQL_MAX_POOL_SIZE, 10);
-        this.mysqlMinIdleConnections = yamlConfiguration.getInt(PATH_MYSQL_MIN_IDLE_CONNECTIONS, -1);
+        this.mysqlMinIdleConnections = yamlConfiguration.getInt(PATH_MYSQL_MIN_IDLE_CONNECTIONS, 0);
         this.mysqlMaxLifetime = yamlConfiguration.getInt(PATH_MYSQL_MAX_LIFETIME, 30);
     }
 

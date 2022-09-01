@@ -4,14 +4,15 @@ import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import org.jetbrains.annotations.NotNull;
 
 @AllArgsConstructor
 @Getter
 @Setter
+@ToString
 public class Group {
 
-    private int id;
     private String name;
     private int weight;
     private String prefix;
