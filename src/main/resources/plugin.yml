@@ -1,0 +1,24 @@
+name: ${project.name}
+version: ${project.version}
+description: ${project.description}
+author: ${author}
+website: ${project.url} # Wird bei /version mit angegeben
+
+main: ${spigot.mainClass}
+load: POSTWORLD # valid types: POSTWORLD and STARTUP
+api-version: 1.19 # Mit welcher Version der API das Plugin geschrieben wurde
+database: true # Gibt an, ob eine DB benutzt wird. true/false
+depend: [ ]
+softdepend: [ ]
+loadBefore: [ ]
+
+commands:
+  legendperm:
+    aliases: [ "lp" ]
+    permission: "legendperm.command"
+    usage: /legendperm help
+#  ExampleCommand:
+#    aliases: [ex, ec]
+#    description: This is a Example
+#    permission: ex.use
+#    usage: /ExampleCommand
