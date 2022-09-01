@@ -20,7 +20,7 @@ public class UserRepository extends Repository {
 
     @Language("MariaDB")
     private static final String SELECT_USER = """
-            SELECT user.uuid as user_id, user.name as user_name, g.id as group_id, g.name as group_name, g.weight as group_weight, ug.valid_until, gp.permission, gp.type
+            SELECT user.uuid as user_id, user.name as user_name, g.id as group_id, g.name as group_name, g.weight as group_weight, g.prefix as group_prefix, g.suffix as group_suffix, ug.valid_until, gp.permission, gp.type
             FROM user
             INNER JOIN users_groups ug on user.uuid = ug.user_id
             INNER JOIN `group` g on ug.group_id = g.id
@@ -82,8 +82,10 @@ public class UserRepository extends Repository {
                     if ((group = fetchFirst(groups.keySet(), group1 -> group1.getId() == groupId)) == null) {
                         String groupName = set.getString("group_name");
                         int groupWeight = set.getInt("group_weight");
+                        String groupPrefix = set.getString("group_prefix");
+                        String groupSuffix = set.getString("group_suffix");
 
-                        group = new Group(groupId, groupName, groupWeight, new HashSet<>());
+                        group = new Group(groupId, groupName, groupWeight, groupPrefix, groupSuffix, new HashSet<>());
                         long validUntil = set.getLong("valid_until");
                         groups.put(group, validUntil);
                     }

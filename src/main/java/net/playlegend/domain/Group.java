@@ -13,6 +13,8 @@ public class Group {
     private int id;
     private String name;
     private int weight;
+    private String prefix;
+    private String suffix;
     private Set<Permission> permissions;
 
     /**

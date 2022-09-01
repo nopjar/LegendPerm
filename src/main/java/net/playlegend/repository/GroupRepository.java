@@ -17,12 +17,12 @@ public class GroupRepository extends Repository {
     @Language("MariaDB")
     private static final String CREATE_GROUP = """
             INSERT INTO `group`
-            (name, weight) VALUES (?, ?);
+            (name, weight, prefix, suffix) VALUES (?, ?, ?, ?);
             """;
 
     @Language("MariaDB")
     private static final String SELECT_GROUP_BY_NAME = """
-            SELECT `group`.id as group_id, `group`.name as group_name, `group`.weight as group_weight, gp.permission, gp.type
+            SELECT `group`.id as group_id, `group`.name as group_name, `group`.weight as group_weight, `group`.prefix as group_prefix, `group`.suffix as group_suffix, gp.permission, gp.type
             FROM `group`
             INNER JOIN group_permissions gp on `group`.id = gp.group_id
             WHERE group_id = ?;
@@ -57,19 +57,21 @@ public class GroupRepository extends Repository {
     public GroupRepository() {
     }
 
-    public Group createGroup(String name, int weight) throws SQLException {
+    public Group createGroup(String name, int weight, String prefix, String suffix) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(CREATE_GROUP, Statement.RETURN_GENERATED_KEYS)) {
 
             statement.setString(1, name);
             statement.setInt(2, weight);
+            statement.setString(3, prefix);
+            statement.setString(4, suffix);
 
             statement.executeUpdate();
             try (ResultSet set = statement.getGeneratedKeys()) {
                 if (!set.next())
                     throw new SQLException("Failed to retrieve auto generated key for group: " + name + ":" + weight);
 
-                return new Group(set.getInt(1), name, weight, new HashSet<>());
+                return new Group(set.getInt(1), name, weight, prefix, suffix, new HashSet<>());
             }
         }
     }
@@ -81,7 +83,6 @@ public class GroupRepository extends Repository {
 
             statement.setInt(1, id);
 
-
             try (ResultSet set = statement.executeQuery()) {
                 if (!set.next()) {
                     return null;
@@ -89,6 +90,8 @@ public class GroupRepository extends Repository {
 
                 String groupName = "";
                 int groupWeight = 0;
+                String groupPrefix = "";
+                String groupSuffix = "";
                 Set<Group.Permission> permissions = new HashSet<>();
                 boolean firstRun = true;
                 // using do-while, so we won't miss the first row in set
@@ -97,6 +100,8 @@ public class GroupRepository extends Repository {
                     if (firstRun) {
                         groupName = set.getString("group_name");
                         groupWeight = set.getInt("group_weight");
+                        groupPrefix = set.getString("group_prefix");
+                        groupSuffix = set.getString("group_suffix");
                         firstRun = false;
                     }
 
@@ -106,7 +111,7 @@ public class GroupRepository extends Repository {
                     permissions.add(new Group.Permission(permissionString, permissionType));
                 } while (set.next());
 
-                return new Group(id, groupName, groupWeight, permissions);
+                return new Group(id, groupName, groupWeight, groupPrefix, groupSuffix, permissions);
             }
         }
     }
