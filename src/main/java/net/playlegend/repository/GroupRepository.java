@@ -1,5 +1,6 @@
 package net.playlegend.repository;
 
+import com.zaxxer.hikari.HikariConfig;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -8,6 +9,7 @@ import java.sql.Statement;
 import java.util.HashSet;
 import java.util.Set;
 import net.playlegend.domain.Group;
+import net.playlegend.domain.Permission;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -54,7 +56,8 @@ public class GroupRepository extends Repository {
             WHERE group_id = ? AND permission = ?;
             """;
 
-    public GroupRepository() {
+    public GroupRepository(HikariConfig config) {
+        super(config);
     }
 
     public Group createGroup(String name, int weight, String prefix, String suffix) throws SQLException {
@@ -92,7 +95,7 @@ public class GroupRepository extends Repository {
                 int groupWeight = 0;
                 String groupPrefix = "";
                 String groupSuffix = "";
-                Set<Group.Permission> permissions = new HashSet<>();
+                Set<Permission> permissions = new HashSet<>();
                 boolean firstRun = true;
                 // using do-while, so we won't miss the first row in set
                 do {
@@ -108,7 +111,7 @@ public class GroupRepository extends Repository {
                     // load information about group permissions
                     String permissionString = set.getString("permission");
                     boolean permissionType = set.getBoolean("type");
-                    permissions.add(new Group.Permission(permissionString, permissionType));
+                    permissions.add(new Permission(permissionString, permissionType));
                 } while (set.next());
 
                 return new Group(id, groupName, groupWeight, groupPrefix, groupSuffix, permissions);

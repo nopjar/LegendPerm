@@ -4,6 +4,7 @@ import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import org.jetbrains.annotations.NotNull;
 
 @AllArgsConstructor
 @Getter
@@ -17,10 +18,18 @@ public class Group {
     private String suffix;
     private Set<Permission> permissions;
 
-    /**
-     * @param granted is either granted or denied
-     */
-    public record Permission(String permissionString, boolean granted) {
+    public boolean hasPermission(@NotNull Permission permission) {
+        return hasPermission(permission.node());
+    }
+
+    public boolean hasPermission(@NotNull String permission) {
+        for (Permission perm : this.permissions) {
+            if (perm.node().equals(permission)) {
+                return perm.mode();
+            }
+        }
+
+        return false;
     }
 
 }

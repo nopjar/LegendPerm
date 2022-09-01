@@ -1,16 +1,19 @@
 package net.playlegend.repository;
 
+import com.zaxxer.hikari.HikariConfig;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Predicate;
 import net.playlegend.domain.Group;
+import net.playlegend.domain.Permission;
+import net.playlegend.domain.TemporaryGroup;
 import net.playlegend.domain.User;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
@@ -48,7 +51,8 @@ public class UserRepository extends Repository {
             ON DUPLICATE KEY UPDATE name = ?;
             """;
 
-    public UserRepository() {
+    public UserRepository(HikariConfig config) {
+        super(config);
     }
 
     @Nullable
@@ -64,7 +68,7 @@ public class UserRepository extends Repository {
                 }
 
                 String userName = "";
-                Map<Group, Long> groups = new HashMap<>();
+                List<Group> groups = new ArrayList<>();
                 boolean firstRun = true;
                 // using do-while, so we won't miss the first row in set
                 do {
@@ -79,17 +83,24 @@ public class UserRepository extends Repository {
                     int groupId = set.getInt("group_id");
                     // check if group was already loaded once, if not -> fetch overall group information
                     // otherwise use already fetched data
-                    if ((group = fetchFirst(groups.keySet(), group1 -> group1.getId() == groupId)) == null) {
+                    if ((group = fetchFirst(groups, group1 -> group1.getId() == groupId)) == null) {
                         String groupName = set.getString("group_name");
                         int groupWeight = set.getInt("group_weight");
                         String groupPrefix = set.getString("group_prefix");
                         String groupSuffix = set.getString("group_suffix");
 
-                        group = new Group(groupId, groupName, groupWeight, groupPrefix, groupSuffix, new HashSet<>());
+                        // if validUntil == 0, then it is a permanent group
                         long validUntil = set.getLong("valid_until");
-                        groups.put(group, validUntil);
+                        if (validUntil == 0) {
+                            group = new Group(groupId, groupName, groupWeight, groupPrefix, groupSuffix, new HashSet<>());
+                        } else {
+                            group = new TemporaryGroup(groupId, groupName, groupWeight, groupPrefix, groupSuffix, new HashSet<>(), validUntil);
+                        }
+
+                        groups.add(group);
                     }
-                    Group.Permission permission = new Group.Permission(set.getString("permission"), set.getBoolean("type"));
+
+                    Permission permission = new Permission(set.getString("permission"), set.getBoolean("type"));
                     group.getPermissions().add(permission);
                 } while (set.next());
 

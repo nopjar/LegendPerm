@@ -1,6 +1,6 @@
 package net.playlegend.domain;
 
-import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,7 +15,6 @@ public class User {
 
     private final UUID uuid;
     private final String name;
-    // value is the valid_until, if not existing -> 0
-    private Map<Group, Long> groups;
+    private List<Group> groups;
 
 }
