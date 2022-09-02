@@ -15,7 +15,7 @@ public class HikariOperations {
 
     public static HikariConfig loadHikariConfig(@NotNull Config config) {
         HIKARI_CONFIG = new HikariConfig();
-        HIKARI_CONFIG.setJdbcUrl("jdbc:mysql://" + config.mysqlHostname + ":" + config.mysqlPort + "/" + config.mysqlDatabase + "?autoReconnect=true");
+        HIKARI_CONFIG.setJdbcUrl("jdbc:mysql://" + config.mysqlHostname + ":" + config.mysqlPort + "/" + config.mysqlDatabase + "?autoReconnect=true&allowMultiQueries=true");
         HIKARI_CONFIG.setUsername(config.mysqlUsername);
         HIKARI_CONFIG.setPassword(config.mysqlPassword);
         HIKARI_CONFIG.setMaximumPoolSize(config.mysqlMaxPoolSize);

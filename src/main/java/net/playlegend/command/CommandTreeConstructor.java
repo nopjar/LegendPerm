@@ -15,10 +15,10 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import java.util.concurrent.CompletableFuture;
 import net.playlegend.LegendPerm;
+import net.playlegend.domain.Group;
 import org.jetbrains.annotations.NotNull;
 
 class CommandTreeConstructor {
-
 
     public LiteralArgumentBuilder<Object> construct() {
         return literal("lp")
@@ -26,6 +26,9 @@ class CommandTreeConstructor {
                         .executes(new InfoCommand(LegendPerm.getInstance()))
                 )
                 .then(literal("group")
+                        .then(literal("list")
+                                .executes(new ShowAllGroupsCommand(LegendPerm.getInstance()))
+                        )
                         .then(argument("groupName", string()).suggests(new CustomTooltip("groupName"))
                                 .then(literal("create")
                                         .executes(new CreateGroupCommand(LegendPerm.getInstance()))
@@ -54,6 +57,14 @@ class CommandTreeConstructor {
                                                 .executes(new RemovePermissionFromGroupCommand(LegendPerm.getInstance()))
                                         )
                                 )
+                                .then(literal("set")
+                                        .then(argument("key", string()).suggests(new CustomSuggestions(Group.Property.VALUES_AS_STRINGS))
+                                                .executes(new GroupSetPropertyCommand(LegendPerm.getInstance()))
+                                                .then(argument("value", string()).suggests(new CustomTooltip("value"))
+                                                        .executes(new GroupSetPropertyCommand(LegendPerm.getInstance()))
+                                                )
+                                        )
+                                )
                         )
                 )
                 .then(literal("user")
@@ -69,8 +80,35 @@ class CommandTreeConstructor {
                                                 )
                                         )
                                 )
+                                .then(literal("remove")
+                                        .then(argument("groupName", string()).suggests(new CustomTooltip("groupName"))
+                                                .executes(new RemoveUserFromGroupCommand(LegendPerm.getInstance()))
+                                                .then(argument("time", string()).suggests(new CustomTooltip("time"))
+                                                        .executes(new RemoveUserFromGroupCommand(LegendPerm.getInstance()))
+                                                )
+                                        )
+                                )
                         )
                 );
+    }
+
+    private class CustomSuggestions implements SuggestionProvider<Object> {
+
+        private final String[] strings;
+
+        public CustomSuggestions(String... strings) {
+            this.strings = strings;
+        }
+
+        @Override
+        public CompletableFuture<Suggestions> getSuggestions(CommandContext<Object> context, SuggestionsBuilder builder) throws CommandSyntaxException {
+            for (String string : strings) {
+                builder.suggest(string);
+            }
+
+            return builder.buildFuture();
+        }
+
     }
 
     private class CustomTooltip implements SuggestionProvider<Object> {
@@ -83,10 +121,9 @@ class CommandTreeConstructor {
 
         @Override
         public @NotNull CompletableFuture<Suggestions> getSuggestions(CommandContext<Object> context, SuggestionsBuilder builder) throws CommandSyntaxException {
-            return CompletableFuture.completedFuture(builder.suggest("", new LiteralMessage("<" + tooltip + ">")).build());
+            return builder.suggest("", new LiteralMessage("<" + tooltip + ">")).buildFuture();
         }
 
     }
-
 
 }

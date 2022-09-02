@@ -4,7 +4,6 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.sql.SQLException;
-import java.util.Iterator;
 import net.playlegend.LegendPerm;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.Permission;

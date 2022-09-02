@@ -58,6 +58,11 @@
             <artifactId>brigadier</artifactId>
             <version>1.0.18</version>
         </dependency>
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+            <version>2.11.1</version>
+        </dependency>
     </dependencies>
 
     <build>

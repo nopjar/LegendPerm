@@ -5,7 +5,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.Permission;
@@ -13,6 +15,7 @@ import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+@SuppressWarnings("SqlResolve")
 public class GroupRepository extends Repository {
 
     @Language("MariaDB")
@@ -25,15 +28,14 @@ public class GroupRepository extends Repository {
     private static final String SELECT_GROUP_BY_NAME = """
             SELECT `group`.name as group_name, `group`.weight as group_weight, `group`.prefix as group_prefix, `group`.suffix as group_suffix, gp.permission, gp.type
             FROM `group`
-            INNER JOIN group_permissions gp on `group`.name = gp.group_id
+            LEFT JOIN group_permissions gp on `group`.name = gp.group_id
             WHERE `group`.name = ?;
             """;
 
-    // TODO: 01/09/2022 update prefix and suffix
     @Language("MariaDB")
     private static final String UPDATE_GROUP = """
             UPDATE `group`
-            SET weight = ?
+            SET weight = ?, prefix = ?, suffix = ?
             WHERE name = ?;
             """;
 
@@ -56,13 +58,45 @@ public class GroupRepository extends Repository {
             WHERE group_id = ? AND permission = ?;
             """;
 
+    @Language("MariaDB")
+    private static final String SELECT_ALL_GROUP_NAMES = """
+            SELECT `name`
+            FROM `group`
+            ORDER BY `name`;
+            """;
+
     public GroupRepository(HikariConfig config) {
         super(config);
     }
 
+    @Override
+    public void prepareStatements() throws SQLException {
+        try (Connection connection = getDataSource().getConnection()) {
+            String query = prepareStatementBuilder("create_group", CREATE_GROUP) +
+                           prepareStatementBuilder("select_group_by_name", SELECT_GROUP_BY_NAME) +
+                           prepareStatementBuilder("update_group", UPDATE_GROUP) +
+                           prepareStatementBuilder("delete_group", DELETE_GROUP) +
+                           prepareStatementBuilder("add_perm_to_group", ADD_PERM_TO_GROUP) +
+                           prepareStatementBuilder("revoke_perm_from_group", REVOKE_PERM_FROM_GROUP) +
+                           prepareStatementBuilder("select_all_group_names", SELECT_ALL_GROUP_NAMES);
+
+            try (PreparedStatement statement = connection.prepareStatement(query)) {
+                statement.executeUpdate();
+            }
+        }
+    }
+
+    private String prepareStatementBuilder(String name, String query) {
+        @Language("MariaDB")
+        String s = "SET @sql := '" + query + "';" +
+                   "PREPARE `" + name + "` FROM @sql;";
+
+        return s;
+    }
+
     public Group createGroup(String name, int weight, String prefix, String suffix) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(CREATE_GROUP)) {
+             PreparedStatement statement = connection.prepareStatement("EXECUTE `create_group` USING ?, ?, ?, ?;")) {
 
             statement.setString(1, name);
             statement.setInt(2, weight);
@@ -77,7 +111,7 @@ public class GroupRepository extends Repository {
     @Nullable
     public Group selectGroupByName(String name) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(SELECT_GROUP_BY_NAME)) {
+             PreparedStatement statement = connection.prepareStatement("EXECUTE `select_group_by_name` USING ?;")) {
 
             statement.setString(1, name);
 
@@ -105,6 +139,7 @@ public class GroupRepository extends Repository {
 
                     // load information about group permissions
                     String permissionString = set.getString("permission");
+                    if (permissionString == null) break; // break out of loop as group does not have any permissions!
                     boolean permissionType = set.getBoolean("type");
                     permissions.add(new Permission(permissionString, permissionType));
                 } while (set.next());
@@ -116,10 +151,12 @@ public class GroupRepository extends Repository {
 
     public void updateGroup(@NotNull Group group) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(UPDATE_GROUP)) {
+             PreparedStatement statement = connection.prepareStatement("EXECUTE `update_group` USING ?, ?, ?, ?;")) {
 
             statement.setInt(1, group.getWeight());
-            statement.setString(2, group.getName());
+            statement.setString(2, group.getPrefix());
+            statement.setString(3, group.getSuffix());
+            statement.setString(4, group.getName());
 
             statement.executeUpdate();
         }
@@ -137,7 +174,7 @@ public class GroupRepository extends Repository {
 
     public void updatePermissionInGroup(@NotNull Group group, String permission, boolean mode) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(ADD_PERM_TO_GROUP)) {
+             PreparedStatement statement = connection.prepareStatement("EXECUTE `add_perm_to_group` USING ?, ?, ?, ?;")) {
 
             statement.setString(1, group.getName());
             statement.setString(2, permission);
@@ -150,12 +187,27 @@ public class GroupRepository extends Repository {
 
     public void revokePermissionFromGroup(@NotNull Group group, String permission) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(REVOKE_PERM_FROM_GROUP)) {
+             PreparedStatement statement = connection.prepareStatement("EXECUTE `revoke_perm_from_group` USING ?, ?;")) {
 
             statement.setString(1, group.getName());
             statement.setString(2, permission);
 
             statement.executeUpdate();
+        }
+    }
+
+    public List<String> selectAllGroupNames() throws SQLException {
+        try (Connection connection = getDataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement("EXECUTE `select_all_group_names`;")) {
+
+            List<String> list = new ArrayList<>();
+            try (ResultSet set = statement.executeQuery()) {
+                while (set.next()) {
+                    list.add(set.getString("name"));
+                }
+            }
+
+            return list;
         }
     }
 

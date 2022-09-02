@@ -1,6 +1,7 @@
 package net.playlegend.repository;
 
 import com.zaxxer.hikari.HikariConfig;
+import java.sql.SQLException;
 
 abstract class Repository {
 
@@ -13,5 +14,7 @@ abstract class Repository {
     DataSource getDataSource() {
         return this.dataSource;
     }
+
+    public abstract void prepareStatements() throws SQLException;
 
 }

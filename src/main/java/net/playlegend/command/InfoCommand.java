@@ -50,7 +50,7 @@ class InfoCommand implements Command<Object> {
                 player.sendMessage(Component.text("Suffix: " + group.getSuffix()));
                 player.sendMessage(Component.text("Permissions: " + group.getPermissions()));
                 if (group instanceof TemporaryGroup temporaryGroup) {
-                    player.sendMessage(Component.text("Expires in: " + Date.from(Instant.ofEpochMilli(temporaryGroup.getValidUntil()))));
+                    player.sendMessage(Component.text("Expires in: " + Date.from(Instant.ofEpochSecond(temporaryGroup.getValidUntil()))));
                 }
             }
             player.sendMessage(Component.text("======= " + user.getName() + " ======="));

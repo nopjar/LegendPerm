@@ -64,10 +64,33 @@ public class UserRepository extends Repository {
         super(config);
     }
 
+    @Override
+    public void prepareStatements() throws SQLException {
+        try (Connection connection = getDataSource().getConnection()) {
+            String query = prepareStatementBuilder("select_user_by_name", SELECT_USER_BY_NAME) +
+                           prepareStatementBuilder("select_user_by_uuid", SELECT_USER_BY_UUID) +
+                           prepareStatementBuilder("grant_user_authority", GRANT_USER_AUTHORITY) +
+                           prepareStatementBuilder("revoke_user_authority", REVOKE_USER_AUTHORITY) +
+                           prepareStatementBuilder("update_user", UPDATE_USER);
+
+            try (PreparedStatement statement = connection.prepareStatement(query)) {
+                statement.executeUpdate();
+            }
+        }
+    }
+
+    private String prepareStatementBuilder(String name, String query) {
+        @Language("MariaDB")
+        String s = "SET @sql := '" + query + "';" +
+                   "PREPARE `" + name + "` FROM @sql;";
+
+        return s;
+    }
+
     @Nullable
     public User selectUserByUUID(@NotNull UUID uuid) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(SELECT_USER_BY_UUID)) {
+             PreparedStatement statement = connection.prepareStatement("EXECUTE `select_user_by_uuid` USING ?;")) {
 
             statement.setString(1, uuid.toString());
 
@@ -78,7 +101,7 @@ public class UserRepository extends Repository {
     @Nullable
     public User selectUserByName(@NotNull String name) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(SELECT_USER_BY_NAME)) {
+             PreparedStatement statement = connection.prepareStatement("EXECUTE `select_user_by_name` USING ?;")) {
 
             statement.setString(1, name);
 
@@ -136,7 +159,6 @@ public class UserRepository extends Repository {
         }
     }
 
-
     // finds the first item, if present, which fulfills the predicate
     private <T> T fetchFirst(Collection<T> list, Predicate<T> predicate) {
         return list.stream()
@@ -145,12 +167,12 @@ public class UserRepository extends Repository {
                 .orElse(null);
     }
 
-    public void addUserToGroup(@NotNull UUID uuid, int groupId, long validUntil) throws SQLException {
+    public void addUserToGroup(@NotNull UUID uuid, String groupName, long validUntil) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(GRANT_USER_AUTHORITY)) {
+             PreparedStatement statement = connection.prepareStatement("EXECUTE `grant_user_authority` USING ?, ?, ?, ?;")) {
 
             statement.setString(1, uuid.toString());
-            statement.setInt(2, groupId);
+            statement.setString(2, groupName);
             statement.setLong(3, validUntil);
             statement.setLong(4, validUntil);
 
@@ -158,12 +180,12 @@ public class UserRepository extends Repository {
         }
     }
 
-    public void removeUserFromGroup(@NotNull UUID uuid, int groupId) throws SQLException {
+    public void removeUserFromGroup(@NotNull UUID uuid, String groupName) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(REVOKE_USER_AUTHORITY)) {
+             PreparedStatement statement = connection.prepareStatement("EXECUTE `revoke_user_authority` USING ?, ?;")) {
 
             statement.setString(1, uuid.toString());
-            statement.setInt(2, groupId);
+            statement.setString(2, groupName);
 
             statement.executeUpdate();
         }
@@ -171,7 +193,7 @@ public class UserRepository extends Repository {
 
     public void updateUser(UUID uuid, String name) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(UPDATE_USER)) {
+             PreparedStatement statement = connection.prepareStatement("EXECUTE `update_user` USING ?, ?, ?;")) {
 
             statement.setString(1, uuid.toString());
             statement.setString(2, name);

@@ -30,6 +30,14 @@ public class RepositoryService implements Service {
         } catch (SQLException e) {
             throw new ServiceInitializeException(e);
         }
+
+        for (Repository repository : repositories.values()) {
+            try {
+                repository.prepareStatements();
+            } catch (SQLException e) {
+                throw new ServiceInitializeException(e);
+            }
+        }
     }
 
     @Override

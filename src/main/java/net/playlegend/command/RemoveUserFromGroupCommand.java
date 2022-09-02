@@ -5,22 +5,22 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import net.playlegend.LegendPerm;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.TemporaryGroup;
 import net.playlegend.domain.User;
-import net.playlegend.repository.GroupRepository;
 import net.playlegend.repository.RepositoryService;
 import net.playlegend.repository.UserRepository;
 import net.playlegend.time.TimeParser;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
-class AddUserToGroupCommand implements Command<Object> {
+class RemoveUserFromGroupCommand implements Command<Object> {
 
     private final LegendPerm plugin;
 
-    public AddUserToGroupCommand(LegendPerm plugin) {
+    public RemoveUserFromGroupCommand(LegendPerm plugin) {
         this.plugin = plugin;
     }
 
@@ -43,57 +43,47 @@ class AddUserToGroupCommand implements Command<Object> {
                 return 1;
             }
 
-            // check if user has any time remaining in this group or is already permanently in this
-            //  group.
+            // check if user has group
             Group group = null;
-            long currentTime = 0;
             for (Group userGroup : user.getGroups()) {
                 if (userGroup.getName().equalsIgnoreCase(groupName)) {
-                    // found group, check if temporary or not
-                    if (userGroup instanceof TemporaryGroup tg) {
-                        group = userGroup;
-                        currentTime = tg.getValidUntil();
-                        break;
-                    } else {
-                        sender.sendMessage("User is already permanent is this group!");
-                        return 1;
-                    }
+                    group = userGroup;
                 }
             }
 
-            // check for existence of group to give
-            // this checks the case that the user just didn't have the group
             if (group == null) {
-                group = plugin.getServiceRegistry().get(RepositoryService.class)
-                        .get(GroupRepository.class)
-                        .selectGroupByName(groupName);
-
-                // this checks the case that the group does not exist
-                if (group == null) {
-                    sender.sendMessage("Group does not exist!");
-                    return 1;
-                }
+                sender.sendMessage("User does not have group!");
+                return 1;
             }
 
-            // calculate time in group (if time == null, the group is permanent)
-            //  setting validUntil to 0 in the database causes the group to be permanent
-            long validUntil = 0;
-            if (time != null) {
-                LocalDateTime base = currentTime == 0 ?
-                        LocalDateTime.now() :
-                        TimeParser.localDateTimeFromEpochSeconds(currentTime);
-
-                TimeParser timeParser = new TimeParser(time, base);
-                validUntil = timeParser.parseToEpochSeconds();
+            // if group get permanently removed, there is no need to check for time
+            //  if time is given, we need to check if group is temporary
+            if (time == null) {
+                userRepository.removeUserFromGroup(user.getUuid(), group.getName());
+                sender.sendMessage("User " + user.getName() + " removed from Group " + group.getName() + ".");
+                return 0;
             }
+
+            if (!(group instanceof TemporaryGroup tg)) {
+                sender.sendMessage("Can't remove time from Group as user has the group permanent!");
+                return 0;
+            }
+
+            // get valid until reduced by the removed time
+            LocalDateTime validUntilDT = TimeParser.localDateTimeFromEpochSeconds(tg.getValidUntil());
+            LocalDateTime now = LocalDateTime.now();
+            long seconds = new TimeParser(time, now).getInSeconds();
+            LocalDateTime newValidUntilDT = validUntilDT.minus(seconds, ChronoUnit.SECONDS);
+            if (newValidUntilDT.isBefore(now)) {
+                userRepository.removeUserFromGroup(user.getUuid(), group.getName());
+                sender.sendMessage("User " + user.getName() + " removed from Group " + group.getName() + ".");
+                return 0;
+            }
+            long validUntil = tg.getValidUntil() - seconds;
 
             // save to database
             userRepository.addUserToGroup(user.getUuid(), group.getName(), validUntil);
-            if (validUntil == 0) {
-                sender.sendMessage("Added " + user.getName() + " permanently to group " + group.getName() + "!");
-            } else {
-                sender.sendMessage("Added " + user.getName() + " until " + TimeParser.epochSecondsToInline(validUntil) + ".");
-            }
+            sender.sendMessage(user.getName() + " grouptime reduced to " + TimeParser.epochSecondsToInline(validUntil) + ".");
         } catch (SQLException e) {
             e.printStackTrace();
             sender.sendMessage("An unexpected error occurred!");

@@ -52,7 +52,7 @@ class UserInfoCommand implements Command<Object> {
                 sender.sendMessage(Component.text("Suffix: " + group.getSuffix()));
                 sender.sendMessage(Component.text("Permissions: " + group.getPermissions()));
                 if (group instanceof TemporaryGroup temporaryGroup) {
-                    sender.sendMessage(Component.text("Expires in: " + Date.from(Instant.ofEpochMilli(temporaryGroup.getValidUntil()))));
+                    sender.sendMessage(Component.text("Expires in: " + Date.from(Instant.ofEpochSecond(temporaryGroup.getValidUntil()))));
                 }
             }
             sender.sendMessage(Component.text("======= " + user.getName() + " ======="));

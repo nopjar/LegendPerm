@@ -1,6 +1,7 @@
 package net.playlegend.domain;
 
 import java.util.Set;
+import javax.management.ValueExp;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -31,6 +32,43 @@ public class Group {
         }
 
         return false;
+    }
+
+    public void changeProperty(@NotNull Property property, String value) {
+        switch (property) {
+            case WEIGHT -> weight = Integer.parseInt(value);
+            case PREFIX -> prefix = value;
+            case SUFFIX -> suffix = value;
+            default -> throw new IllegalArgumentException("Unknown property: " + property);
+        }
+    }
+
+    public enum Property {
+        PREFIX,
+        SUFFIX,
+        WEIGHT;
+
+        private static final Property[] VALUES;
+        public static final String[] VALUES_AS_STRINGS;
+
+        static {
+            VALUES = values();
+
+            VALUES_AS_STRINGS = new String[VALUES.length];
+            for (int i = 0; i < VALUES.length; i++) {
+                VALUES_AS_STRINGS[i] = VALUES[i].name();
+            }
+        }
+
+        public static Property find(@NotNull String name) {
+            for (Property property : VALUES) {
+                if (property.name().equalsIgnoreCase(name)) {
+                    return property;
+                }
+            }
+
+            return null;
+        }
     }
 
 }
