@@ -19,7 +19,7 @@ import org.jetbrains.annotations.NotNull;
 class UserInfoCommand implements Command<Object> {
 
     private final LegendPerm plugin;
-    
+
     public UserInfoCommand(LegendPerm plugin) {
         this.plugin = plugin;
     }
@@ -31,7 +31,7 @@ class UserInfoCommand implements Command<Object> {
         CommandSender sender = (CommandSender) context.getSource();
 
         String userName = context.getArgument("userName", String.class);
-        
+
         try {
             User user = plugin.getServiceRegistry().get(RepositoryService.class)
                     .get(UserRepository.class)

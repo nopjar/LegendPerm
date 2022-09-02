@@ -17,9 +17,10 @@ public class CommandService extends Service {
     @Override
     public void initialize() throws ServiceInitializeException {
         CommandDispatcher<Object> dispatcher = new CommandDispatcher<>();
-        dispatcher.register(new CommandTreeConstructor().construct());
+        dispatcher.register(new CommandTreeConstructor(plugin)
+                .construct());
 
-        CommandMediator mediator = new CommandMediator(dispatcher);
+        CommandMediator mediator = new CommandMediator(plugin, dispatcher);
 
         PluginCommand legendPerm = Bukkit.getPluginCommand("legendperm");
         legendPerm.setExecutor(mediator);

@@ -18,7 +18,6 @@ import net.playlegend.domain.User;
 import net.playlegend.repository.RepositoryService;
 import net.playlegend.repository.UserRepository;
 import org.bukkit.Bukkit;
-import org.bukkit.block.data.type.Bell;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;

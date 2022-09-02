@@ -22,15 +22,17 @@ import org.jetbrains.annotations.Nullable;
 
 class CommandMediator implements CommandExecutor, TabCompleter {
 
+    private final LegendPerm plugin;
     private final CommandDispatcher<Object> dispatcher;
 
-    public CommandMediator(CommandDispatcher<Object> dispatcher) {
+    public CommandMediator(LegendPerm plugin, CommandDispatcher<Object> dispatcher) {
+        this.plugin = plugin;
         this.dispatcher = dispatcher;
     }
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        Bukkit.getScheduler().runTaskAsynchronously(LegendPerm.getInstance(), () -> {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
                 dispatcher.execute(buildCommand(label, args), sender);
             } catch (CommandSyntaxException e) {
@@ -71,4 +73,5 @@ class CommandMediator implements CommandExecutor, TabCompleter {
     private String buildCommand(String label, String[] args) {
         return label + " " + String.join(" ", args);
     }
+
 }

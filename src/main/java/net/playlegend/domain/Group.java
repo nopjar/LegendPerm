@@ -1,7 +1,6 @@
 package net.playlegend.domain;
 
 import java.util.Set;
-import javax.management.ValueExp;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;

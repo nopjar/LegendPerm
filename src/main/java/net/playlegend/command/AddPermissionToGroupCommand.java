@@ -6,7 +6,6 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.sql.SQLException;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import javax.swing.text.html.Option;
 import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
 import net.playlegend.cache.GroupCache;

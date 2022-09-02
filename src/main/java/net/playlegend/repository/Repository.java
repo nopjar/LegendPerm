@@ -1,7 +1,6 @@
 package net.playlegend.repository;
 
 import com.zaxxer.hikari.HikariConfig;
-import java.sql.SQLException;
 
 abstract class Repository {
 

@@ -3,15 +3,12 @@ package net.playlegend.command;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import java.sql.SQLException;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
 import net.playlegend.cache.GroupCache;
 import net.playlegend.domain.Group;
-import net.playlegend.repository.GroupRepository;
-import net.playlegend.repository.RepositoryService;
 import org.bukkit.command.CommandSender;
 
 class GroupInfoCommand implements Command<Object> {

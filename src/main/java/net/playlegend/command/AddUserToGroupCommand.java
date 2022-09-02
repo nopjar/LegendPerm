@@ -13,7 +13,6 @@ import net.playlegend.cache.GroupCache;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.TemporaryGroup;
 import net.playlegend.domain.User;
-import net.playlegend.repository.GroupRepository;
 import net.playlegend.repository.RepositoryService;
 import net.playlegend.repository.UserRepository;
 import net.playlegend.time.TimeParser;
