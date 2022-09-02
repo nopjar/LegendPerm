@@ -4,7 +4,11 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.sql.SQLException;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
+import net.playlegend.cache.CacheService;
+import net.playlegend.cache.GroupCache;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.Permission;
 import net.playlegend.repository.GroupRepository;
@@ -27,15 +31,16 @@ class RemovePermissionFromGroupCommand implements Command<Object> {
         String permissionNode = context.getArgument("permissionNode", String.class);
 
         try {
-            GroupRepository groupRepository = plugin.getServiceRegistry().get(RepositoryService.class)
-                    .get(GroupRepository.class);
+            Optional<Group> cacheResult = plugin.getServiceRegistry().get(CacheService.class)
+                    .get(GroupCache.class)
+                    .get(groupName);
 
-            Group group = groupRepository.selectGroupByName(groupName);
-            if (group == null) {
+            if (cacheResult.isEmpty()) {
                 sender.sendMessage("Group does not exist!");
                 return 1;
             }
 
+            Group group = cacheResult.get();
             boolean found = false;
             for (Permission permission : group.getPermissions()) {
                 if (permission.node().equalsIgnoreCase(permissionNode)) {
@@ -48,9 +53,12 @@ class RemovePermissionFromGroupCommand implements Command<Object> {
                 return 1;
             }
 
-            groupRepository.revokePermissionFromGroup(group, permissionNode);
+            plugin.getServiceRegistry().get(RepositoryService.class)
+                    .get(GroupRepository.class)
+                    .revokePermissionFromGroup(group, permissionNode);
+
             sender.sendMessage("Permission revoked!");
-        } catch (SQLException e) {
+        } catch (SQLException | ExecutionException e) {
             e.printStackTrace();
             sender.sendMessage("An unexpected error occurred!");
         }

@@ -1,6 +1,6 @@
 package net.playlegend.domain;
 
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,6 +15,12 @@ public class User {
 
     private final UUID uuid;
     private final String name;
-    private List<Group> groups; // TODO: 02/09/2022 Maybe Set?
+    private Set<Group> groups;
+
+    public String getPrefix() {
+        if (groups.isEmpty()) return "";
+
+        return groups.iterator().next().getPrefix();
+    }
 
 }

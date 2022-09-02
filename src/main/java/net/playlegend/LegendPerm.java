@@ -34,7 +34,7 @@ public class LegendPerm extends JavaPlugin {
             return;
         }
 
-        this.serviceRegistry = new ServiceRegistry(customConfig);
+        this.serviceRegistry = new ServiceRegistry(this, customConfig);
         getLogger().info("LegendPerm successfully loaded.");
     }
 

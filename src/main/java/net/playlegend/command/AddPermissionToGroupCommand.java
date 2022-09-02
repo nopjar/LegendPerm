@@ -4,7 +4,12 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.sql.SQLException;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import javax.swing.text.html.Option;
 import net.playlegend.LegendPerm;
+import net.playlegend.cache.CacheService;
+import net.playlegend.cache.GroupCache;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.Permission;
 import net.playlegend.repository.GroupRepository;
@@ -28,25 +33,28 @@ class AddPermissionToGroupCommand implements Command<Object> {
         boolean mode = context.getArgument("mode", Boolean.class);
 
         try {
-            GroupRepository groupRepository = plugin.getServiceRegistry().get(RepositoryService.class)
-                    .get(GroupRepository.class);
+            Optional<Group> cacheResult = plugin.getServiceRegistry().get(CacheService.class)
+                    .get(GroupCache.class)
+                    .get(groupName);
 
-            Permission permission = new Permission(permissionNode, mode);
-            Group group = groupRepository.selectGroupByName(groupName);
-            if (group == null) {
+            if (cacheResult.isEmpty()) {
                 sender.sendMessage("Group does not exist!");
                 return 1;
             }
 
+            Group group = cacheResult.get();
+            Permission permission = new Permission(permissionNode, mode);
             if (group.getPermissions().contains(permission)) {
                 sender.sendMessage("Group does already contain this permission!");
                 return 1;
             }
 
-            groupRepository.updatePermissionInGroup(group, permissionNode, mode);
+            plugin.getServiceRegistry().get(RepositoryService.class)
+                    .get(GroupRepository.class)
+                    .updatePermissionInGroup(group, permissionNode, mode);
 
             sender.sendMessage("Added permission!");
-        } catch (SQLException e) {
+        } catch (SQLException | ExecutionException e) {
             e.printStackTrace();
             sender.sendMessage("An unexpected error occurred!");
         }

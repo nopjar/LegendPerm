@@ -6,8 +6,12 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Date;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import net.kyori.adventure.text.Component;
 import net.playlegend.LegendPerm;
+import net.playlegend.cache.CacheService;
+import net.playlegend.cache.UserCache;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.TemporaryGroup;
 import net.playlegend.domain.User;
@@ -33,13 +37,14 @@ class InfoCommand implements Command<Object> {
         }
 
         try {
-            User user = plugin.getServiceRegistry().get(RepositoryService.class)
-                    .get(UserRepository.class)
-                    .selectUserByUUID(player.getUniqueId());
+            Optional<User> cacheResult = plugin.getServiceRegistry().get(CacheService.class)
+                    .get(UserCache.class)
+                    .get(player.getUniqueId());
 
-            if (user == null)
+            if (cacheResult.isEmpty())
                 throw new NullPointerException("user must not be null");
 
+            User user = cacheResult.get();
             player.sendMessage(Component.text("======= " + user.getName() + " ======="));
             player.sendMessage(Component.text("Groups: " + (user.getGroups().size() == 0 ? "none" : "")));
             for (Group group : user.getGroups()) {
@@ -54,7 +59,7 @@ class InfoCommand implements Command<Object> {
                 }
             }
             player.sendMessage(Component.text("======= " + user.getName() + " ======="));
-        } catch (SQLException | NullPointerException e) {
+        } catch (ExecutionException e) {
             e.printStackTrace();
             player.sendMessage("An unexpected error occurred!");
         }

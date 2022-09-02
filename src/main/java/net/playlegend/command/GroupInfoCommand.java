@@ -4,7 +4,11 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.sql.SQLException;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
+import net.playlegend.cache.CacheService;
+import net.playlegend.cache.GroupCache;
 import net.playlegend.domain.Group;
 import net.playlegend.repository.GroupRepository;
 import net.playlegend.repository.RepositoryService;
@@ -25,17 +29,17 @@ class GroupInfoCommand implements Command<Object> {
         String groupName = context.getArgument("groupName", String.class);
 
         try {
-            Group group = plugin.getServiceRegistry().get(RepositoryService.class)
-                    .get(GroupRepository.class)
-                    .selectGroupByName(groupName);
+            Optional<Group> cacheResult = plugin.getServiceRegistry().get(CacheService.class)
+                    .get(GroupCache.class)
+                    .get(groupName);
 
-            if (group == null) {
+            if (cacheResult.isEmpty()) {
                 sender.sendMessage("No group with this name exists. Use /lp group " + groupName + " create");
                 return 1;
             }
 
-            sender.sendMessage("Group: " + group);
-        } catch (SQLException e) {
+            sender.sendMessage("Group: " + cacheResult.get());
+        } catch (ExecutionException e) {
             e.printStackTrace();
             sender.sendMessage("An unexpected error occurred!");
         }

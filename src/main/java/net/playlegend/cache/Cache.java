@@ -1,0 +1,24 @@
+package net.playlegend.cache;
+
+import java.util.concurrent.ExecutionException;
+import net.playlegend.LegendPerm;
+
+abstract class Cache<K, V> {
+
+    protected final LegendPerm plugin;
+
+    public Cache(LegendPerm plugin) {
+        this.plugin = plugin;
+    }
+
+    protected abstract void releaseAll();
+
+    public abstract V get(K key) throws ExecutionException;
+
+    public abstract void refresh(K key);
+
+    public abstract void release(K key);
+
+    public abstract void cleanup();
+
+}

@@ -5,16 +5,17 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Predicate;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.Permission;
 import net.playlegend.domain.TemporaryGroup;
 import net.playlegend.domain.User;
+import net.playlegend.misc.GroupWeightComparator;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -32,12 +33,14 @@ public class UserRepository extends Repository {
 
     @Language("MariaDB")
     private static final String SELECT_USER_BY_UUID = BASE_SELECT_USER + """
-            WHERE user.uuid = ?;
+            WHERE user.uuid = ?
+            ORDER BY group_weight DESC;
             """;
 
     @Language("MariaDB")
     private static final String SELECT_USER_BY_NAME = BASE_SELECT_USER + """
-            WHERE user.name = ?;
+            WHERE user.name = ?
+            ORDER BY group_weight DESC;
             """;
 
     @Language("MariaDB")
@@ -64,33 +67,10 @@ public class UserRepository extends Repository {
         super(config);
     }
 
-    @Override
-    public void prepareStatements() throws SQLException {
-        try (Connection connection = getDataSource().getConnection()) {
-            String query = prepareStatementBuilder("select_user_by_name", SELECT_USER_BY_NAME) +
-                           prepareStatementBuilder("select_user_by_uuid", SELECT_USER_BY_UUID) +
-                           prepareStatementBuilder("grant_user_authority", GRANT_USER_AUTHORITY) +
-                           prepareStatementBuilder("revoke_user_authority", REVOKE_USER_AUTHORITY) +
-                           prepareStatementBuilder("update_user", UPDATE_USER);
-
-            try (PreparedStatement statement = connection.prepareStatement(query)) {
-                statement.executeUpdate();
-            }
-        }
-    }
-
-    private String prepareStatementBuilder(String name, String query) {
-        @Language("MariaDB")
-        String s = "SET @sql := '" + query + "';" +
-                   "PREPARE `" + name + "` FROM @sql;";
-
-        return s;
-    }
-
     @Nullable
     public User selectUserByUUID(@NotNull UUID uuid) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement("EXECUTE `select_user_by_uuid` USING ?;")) {
+             PreparedStatement statement = connection.prepareStatement(SELECT_USER_BY_UUID)) {
 
             statement.setString(1, uuid.toString());
 
@@ -101,7 +81,7 @@ public class UserRepository extends Repository {
     @Nullable
     public User selectUserByName(@NotNull String name) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement("EXECUTE `select_user_by_name` USING ?;")) {
+             PreparedStatement statement = connection.prepareStatement(SELECT_USER_BY_NAME)) {
 
             statement.setString(1, name);
 
@@ -117,7 +97,7 @@ public class UserRepository extends Repository {
 
             UUID uuid = null;
             String userName = "";
-            List<Group> groups = new ArrayList<>();
+            Set<Group> groups = new TreeSet<>(new GroupWeightComparator());
             boolean firstRun = true;
             // using do-while, so we won't miss the first row in set
             do {
@@ -169,7 +149,7 @@ public class UserRepository extends Repository {
 
     public void addUserToGroup(@NotNull UUID uuid, String groupName, long validUntil) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement("EXECUTE `grant_user_authority` USING ?, ?, ?, ?;")) {
+             PreparedStatement statement = connection.prepareStatement(GRANT_USER_AUTHORITY)) {
 
             statement.setString(1, uuid.toString());
             statement.setString(2, groupName);
@@ -182,7 +162,7 @@ public class UserRepository extends Repository {
 
     public void removeUserFromGroup(@NotNull UUID uuid, String groupName) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement("EXECUTE `revoke_user_authority` USING ?, ?;")) {
+             PreparedStatement statement = connection.prepareStatement(REVOKE_USER_AUTHORITY)) {
 
             statement.setString(1, uuid.toString());
             statement.setString(2, groupName);
@@ -193,7 +173,7 @@ public class UserRepository extends Repository {
 
     public void updateUser(UUID uuid, String name) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement("EXECUTE `update_user` USING ?, ?, ?;")) {
+             PreparedStatement statement = connection.prepareStatement(UPDATE_USER)) {
 
             statement.setString(1, uuid.toString());
             statement.setString(2, name);

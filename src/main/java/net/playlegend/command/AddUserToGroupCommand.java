@@ -5,7 +5,11 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
+import net.playlegend.cache.CacheService;
+import net.playlegend.cache.GroupCache;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.TemporaryGroup;
 import net.playlegend.domain.User;
@@ -64,14 +68,15 @@ class AddUserToGroupCommand implements Command<Object> {
             // check for existence of group to give
             // this checks the case that the user just didn't have the group
             if (group == null) {
-                group = plugin.getServiceRegistry().get(RepositoryService.class)
-                        .get(GroupRepository.class)
-                        .selectGroupByName(groupName);
+                Optional<Group> cacheResult = plugin.getServiceRegistry().get(CacheService.class)
+                        .get(GroupCache.class)
+                        .get(groupName);
 
-                // this checks the case that the group does not exist
-                if (group == null) {
+                if (cacheResult.isEmpty()) {
                     sender.sendMessage("Group does not exist!");
                     return 1;
+                } else {
+                    group = cacheResult.get();
                 }
             }
 
@@ -94,7 +99,7 @@ class AddUserToGroupCommand implements Command<Object> {
             } else {
                 sender.sendMessage("Added " + user.getName() + " until " + TimeParser.epochSecondsToInline(validUntil) + ".");
             }
-        } catch (SQLException e) {
+        } catch (SQLException | ExecutionException e) {
             e.printStackTrace();
             sender.sendMessage("An unexpected error occurred!");
         }

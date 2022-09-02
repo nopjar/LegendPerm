@@ -1,15 +1,17 @@
 package net.playlegend.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import net.playlegend.LegendPerm;
 import net.playlegend.exception.ServiceInitializeException;
 import net.playlegend.exception.ServiceShutdownException;
 import net.playlegend.service.Service;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 
-public class CommandService implements Service {
+public class CommandService extends Service {
 
-    public CommandService() {
+    public CommandService(LegendPerm plugin) {
+        super(plugin);
     }
 
     @Override

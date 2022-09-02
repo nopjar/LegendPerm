@@ -4,18 +4,22 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.sql.SQLException;
+import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
+import net.playlegend.cache.CacheService;
+import net.playlegend.cache.GroupCache;
 import net.playlegend.domain.Group;
 import net.playlegend.repository.GroupRepository;
 import net.playlegend.repository.RepositoryService;
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
-class CreateGroupCommand implements Command<Object> {
+class GroupCreateCommand implements Command<Object> {
 
     private final LegendPerm plugin;
 
-    public CreateGroupCommand(LegendPerm plugin) {
+    public GroupCreateCommand(LegendPerm plugin) {
         this.plugin = plugin;
     }
 
@@ -25,24 +29,25 @@ class CreateGroupCommand implements Command<Object> {
 
         String groupName = context.getArgument("groupName", String.class);
         int weight = getArgumentOrDefault(context, "weight", Integer.class, 100);
-        String prefix = getArgumentOrDefault(context, "prefix", String.class, "");
-        String suffix = getArgumentOrDefault(context, "suffix", String.class, "");
+        String prefix = ChatColor.translateAlternateColorCodes('&', getArgumentOrDefault(context, "prefix", String.class, ""));
+        String suffix = ChatColor.translateAlternateColorCodes('&', getArgumentOrDefault(context, "suffix", String.class, ""));
 
         try {
-            GroupRepository groupRepository = plugin.getServiceRegistry().get(RepositoryService.class)
-                    .get(GroupRepository.class);
+            GroupCache groupCache = plugin.getServiceRegistry().get(CacheService.class)
+                    .get(GroupCache.class);
 
             // make sure to prevent SQLException
-            if (groupRepository.selectGroupByName(groupName) != null) {
+            if (groupCache.get(groupName).isPresent()) {
                 sender.sendMessage("Group " + groupName + " already exists!");
                 return 1;
             }
 
-            Group group = groupRepository
+            Group group = plugin.getServiceRegistry().get(RepositoryService.class)
+                    .get(GroupRepository.class)
                     .createGroup(groupName, weight, prefix, suffix);
 
             sender.sendMessage("Group created! " + group.toString());
-        } catch (SQLException e) {
+        } catch (SQLException | ExecutionException e) {
             e.printStackTrace();
             sender.sendMessage("An unexpected error occurred!");
         }

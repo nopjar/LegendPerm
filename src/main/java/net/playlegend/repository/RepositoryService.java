@@ -4,15 +4,17 @@ import com.zaxxer.hikari.HikariConfig;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import net.playlegend.LegendPerm;
 import net.playlegend.configuration.Config;
 import net.playlegend.exception.ServiceInitializeException;
 import net.playlegend.service.Service;
 
-public class RepositoryService implements Service {
+public class RepositoryService extends Service {
 
     private final Map<Class<? extends Repository>, Repository> repositories;
 
-    public RepositoryService(Config config) {
+    public RepositoryService(LegendPerm plugin, Config config) {
+        super(plugin);
         this.repositories = new ConcurrentHashMap<>();
 
         // we do not put TableSetupRepository in here on purpose as it should not be used outside
@@ -29,14 +31,6 @@ public class RepositoryService implements Service {
             tableSetupRepository.getDataSource().shutdown();
         } catch (SQLException e) {
             throw new ServiceInitializeException(e);
-        }
-
-        for (Repository repository : repositories.values()) {
-            try {
-                repository.prepareStatements();
-            } catch (SQLException e) {
-                throw new ServiceInitializeException(e);
-            }
         }
     }
 

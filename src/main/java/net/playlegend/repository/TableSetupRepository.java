@@ -75,11 +75,6 @@ class TableSetupRepository extends Repository {
         this.queries.add(CREATE_USERS_GROUPS_TABLE);
     }
 
-    @Override
-    public void prepareStatements() throws SQLException {
-
-    }
-
     public void setupTables() throws SQLException {
         try (Connection connection = getDataSource().getConnection()) {
 

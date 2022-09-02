@@ -4,10 +4,15 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.sql.SQLException;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
+import net.playlegend.cache.CacheService;
+import net.playlegend.cache.GroupCache;
 import net.playlegend.domain.Group;
 import net.playlegend.repository.GroupRepository;
 import net.playlegend.repository.RepositoryService;
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
 class GroupSetPropertyCommand implements Command<Object> {
@@ -24,7 +29,7 @@ class GroupSetPropertyCommand implements Command<Object> {
 
         String groupName = context.getArgument("groupName", String.class);
         String key = context.getArgument("key", String.class);
-        String value = getArgumentOrDefault(context, "value", String.class, "");
+        String value = ChatColor.translateAlternateColorCodes('&', getArgumentOrDefault(context, "value", String.class, ""));
         Group.Property property = Group.Property.find(key);
         if (property == null) {
             sender.sendMessage("Unknown Key!");
@@ -32,17 +37,16 @@ class GroupSetPropertyCommand implements Command<Object> {
         }
 
         try {
-            GroupRepository groupRepository = plugin.getServiceRegistry()
-                    .get(RepositoryService.class)
-                    .get(GroupRepository.class);
+            Optional<Group> cacheResult = plugin.getServiceRegistry().get(CacheService.class)
+                    .get(GroupCache.class)
+                    .get(groupName);
 
-            Group group = groupRepository.selectGroupByName(groupName);
-
-            if (group == null) {
+            if (cacheResult.isEmpty()) {
                 sender.sendMessage("No group found!");
                 return 1;
             }
 
+            Group group = cacheResult.get();
             try {
                 group.changeProperty(property, value);
             } catch (Exception e) {
@@ -50,9 +54,12 @@ class GroupSetPropertyCommand implements Command<Object> {
                 return 0;
             }
 
-            groupRepository.updateGroup(group);
+            plugin.getServiceRegistry().get(RepositoryService.class)
+                    .get(GroupRepository.class)
+                    .updateGroup(group);
+
             sender.sendMessage("Group updated!");
-        } catch (SQLException e) {
+        } catch (SQLException | ExecutionException e) {
             e.printStackTrace();
             sender.sendMessage("An unexpected error occurred!");
         }

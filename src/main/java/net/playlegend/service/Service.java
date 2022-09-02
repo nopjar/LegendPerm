@@ -1,12 +1,19 @@
 package net.playlegend.service;
 
+import net.playlegend.LegendPerm;
 import net.playlegend.exception.ServiceInitializeException;
 import net.playlegend.exception.ServiceShutdownException;
 
-public interface Service {
+public abstract class Service {
 
-    void initialize() throws ServiceInitializeException;
+    protected final LegendPerm plugin;
 
-    void shutdown() throws ServiceShutdownException;
+    public Service(LegendPerm plugin) {
+        this.plugin = plugin;
+    }
+
+    public abstract void initialize() throws ServiceInitializeException;
+
+    public abstract void shutdown() throws ServiceShutdownException;
 
 }

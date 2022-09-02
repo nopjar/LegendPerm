@@ -15,6 +15,4 @@ abstract class Repository {
         return this.dataSource;
     }
 
-    public abstract void prepareStatements() throws SQLException;
-
 }

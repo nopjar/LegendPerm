@@ -16,12 +16,33 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import java.util.concurrent.CompletableFuture;
 import net.playlegend.LegendPerm;
 import net.playlegend.domain.Group;
+import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 class CommandTreeConstructor {
 
     public LiteralArgumentBuilder<Object> construct() {
         return literal("lp")
+                .then(literal("test")
+                        .then(argument("user", string())
+                                .then(argument("perm", string())
+                                        .executes(context -> {
+                                            CommandSender sender = (CommandSender) context.getSource();
+                                            Player player = Bukkit.getServer().getPlayerExact(context.getArgument("user", String.class));
+                                            if (player == null) {
+                                                sender.sendMessage("Player not online!");
+                                                return 1;
+                                            }
+
+                                            boolean has = player.hasPermission(context.getArgument("perm", String.class));
+                                            sender.sendMessage("Has: " + (has ? "§aTrue" : "§cFalse"));
+                                            return 1;
+                                        })
+                                )
+                        )
+                )
                 .then(literal("info")
                         .executes(new InfoCommand(LegendPerm.getInstance()))
                 )
@@ -31,13 +52,13 @@ class CommandTreeConstructor {
                         )
                         .then(argument("groupName", string()).suggests(new CustomTooltip("groupName"))
                                 .then(literal("create")
-                                        .executes(new CreateGroupCommand(LegendPerm.getInstance()))
+                                        .executes(new GroupCreateCommand(LegendPerm.getInstance()))
                                         .then(argument("weight", integer()).suggests(new CustomTooltip("weight"))
-                                                .executes(new CreateGroupCommand(LegendPerm.getInstance()))
+                                                .executes(new GroupCreateCommand(LegendPerm.getInstance()))
                                                 .then(argument("prefix", string()).suggests(new CustomTooltip("prefix"))
-                                                        .executes(new CreateGroupCommand(LegendPerm.getInstance()))
+                                                        .executes(new GroupCreateCommand(LegendPerm.getInstance()))
                                                         .then(argument("suffix", string()).suggests(new CustomTooltip("suffix"))
-                                                                .executes(new CreateGroupCommand(LegendPerm.getInstance()))
+                                                                .executes(new GroupCreateCommand(LegendPerm.getInstance()))
                                                         )
                                                 )
                                         )
