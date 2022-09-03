@@ -5,8 +5,9 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
 import net.playlegend.domain.Group;
@@ -24,6 +25,7 @@ public class GroupCache extends Cache<String, Optional<Group>> {
         CacheLoader<String, Optional<Group>> loader = new CacheLoader<>() {
             @Override
             public @NotNull Optional<Group> load(@NotNull String key) throws Exception {
+                System.out.println("Loading from db to cache: " + key);
                 return Optional.ofNullable(plugin.getServiceRegistry()
                         .get(RepositoryService.class)
                         .get(GroupRepository.class)
@@ -66,6 +68,18 @@ public class GroupCache extends Cache<String, Optional<Group>> {
                 .removeIf(e -> e.getValue().isEmpty());
 
         this.cache.cleanUp();
+    }
+
+    void add(String key, Optional<Group> value) {
+        this.cache.put(key, value);
+    }
+
+    void addAll(Map<String, Optional<Group>> map) {
+        this.cache.putAll(map);
+    }
+
+    ConcurrentMap<String, Optional<Group>> getAsMap() {
+        return this.cache.asMap();
     }
 
 }

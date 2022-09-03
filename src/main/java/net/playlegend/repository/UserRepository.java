@@ -5,10 +5,16 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import net.playlegend.LegendPerm;
+import net.playlegend.cache.CacheService;
+import net.playlegend.cache.GroupCache;
+import net.playlegend.domain.Group;
 import net.playlegend.domain.User;
+import net.playlegend.misc.GroupWeightComparator;
 import net.playlegend.observer.UserListener;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
@@ -56,12 +62,12 @@ public class UserRepository extends Repository {
             ON DUPLICATE KEY UPDATE name = ?;
             """;
 
-    public UserRepository(HikariConfig config) {
-        super(config);
+    public UserRepository(LegendPerm plugin, HikariConfig config) {
+        super(plugin, config);
     }
 
     @Nullable
-    public User selectUserByUUID(@NotNull UUID uuid) throws SQLException {
+    public User selectUserByUUID(@NotNull UUID uuid) throws SQLException, ExecutionException {
         try (Connection connection = getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(SELECT_USER_BY_UUID)) {
 
@@ -72,7 +78,7 @@ public class UserRepository extends Repository {
     }
 
     @Nullable
-    public User selectUserByName(@NotNull String name) throws SQLException {
+    public User selectUserByName(@NotNull String name) throws SQLException, ExecutionException {
         try (Connection connection = getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(SELECT_USER_BY_NAME)) {
 
@@ -82,7 +88,7 @@ public class UserRepository extends Repository {
         }
     }
 
-    private User selectUser(PreparedStatement statement) throws SQLException {
+    private User selectUser(PreparedStatement statement) throws SQLException, ExecutionException {
         try (ResultSet set = statement.executeQuery()) {
             if (!set.next()) {
                 return null;
@@ -90,8 +96,10 @@ public class UserRepository extends Repository {
 
             UUID uuid = null;
             String userName = "";
-            Map<String, Long> groups = new LinkedHashMap<>();
+            Map<Group, Long> groups = new TreeMap<>(new GroupWeightComparator());
             boolean firstRun = true;
+            GroupCache groupCache = plugin.getServiceRegistry().get(CacheService.class)
+                    .get(GroupCache.class);
             // using do-while, so we won't miss the first row in set
             do {
                 // load overall information which change not (typically user information)
@@ -105,11 +113,13 @@ public class UserRepository extends Repository {
                 String groupName = set.getString("group_name");
                 if (groupName == null) break; // break out of loop as user does not have any groups!
                 long validUntil = set.getLong("valid_until");
-                groups.put(groupName, validUntil);
+                Group group = groupCache.get(groupName)
+                        .orElseThrow();
+                groups.put(group, validUntil);
             } while (set.next());
 
             User user = new User(uuid, userName, groups);
-            user.subscribe(new UserListener(), User.Operation.GROUP_CHANGE);
+            user.subscribe(new UserListener(plugin), User.Operation.GROUP_CHANGE);
             return user;
         }
     }

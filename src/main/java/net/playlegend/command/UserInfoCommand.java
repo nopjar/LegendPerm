@@ -10,6 +10,7 @@ import net.kyori.adventure.text.Component;
 import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
 import net.playlegend.cache.UserCache;
+import net.playlegend.domain.Group;
 import net.playlegend.domain.User;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
@@ -42,8 +43,8 @@ class UserInfoCommand implements Command<Object> {
             User user = cacheResult.get();
             sender.sendMessage(Component.text("======= " + user.getName() + " ======="));
             sender.sendMessage(Component.text("Groups: " + (user.getGroups().isEmpty() ? "none" : "")));
-            for (Map.Entry<String, Long> entry : user.getGroups().entrySet()) {
-                sender.sendMessage(Component.text("- " + entry.getKey() + (entry.getValue() == 0 ? "" : "(" + entry.getValue() + ")")));
+            for (Map.Entry<Group, Long> entry : user.getGroups().entrySet()) {
+                sender.sendMessage(Component.text("- " + entry.getKey().getName() + (entry.getValue() == 0 ? "" : "(" + entry.getValue() + ")")));
             }
             sender.sendMessage(Component.text("======= " + user.getName() + " ======="));
         } catch (ExecutionException e) {

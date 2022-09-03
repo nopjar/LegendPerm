@@ -1,9 +1,9 @@
 package net.playlegend.listener;
 
+import com.google.common.collect.ImmutableSet;
 import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import java.sql.SQLException;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -11,7 +11,6 @@ import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
-import net.playlegend.cache.GroupCache;
 import net.playlegend.cache.PermissionCache;
 import net.playlegend.cache.UserCache;
 import net.playlegend.domain.Group;
@@ -65,13 +64,7 @@ public class PlayerListener implements Listener {
                 }
 
                 // fetch permissions
-                List<Group> groups = plugin.getServiceRegistry().get(CacheService.class)
-                        .get(GroupCache.class)
-                        .getAll(user.getGroups().keySet())
-                        .values()
-                        .stream()
-                        .map(Optional::orElseThrow) // throw because user should not have any groups that don't exist!
-                        .toList();
+                ImmutableSet<Group> groups = user.getGroups().keySet();
 
                 // apply permissions
                 PermissionAttachment attachment = plugin.getServiceRegistry().get(CacheService.class)
@@ -87,7 +80,7 @@ public class PlayerListener implements Listener {
                 }
                 player.recalculatePermissions();
 
-                Bukkit.broadcast(Component.text("[" + groups.get(0).getPrefix() + "§r] §e" + player.getName() + " joined!"));
+                Bukkit.broadcast(Component.text("[" + user.getMainGroup().getPrefix() + "§r] §e" + player.getName() + " joined!"));
             } catch (SQLException | ExecutionException e) {
                 e.printStackTrace();
             }
@@ -113,14 +106,8 @@ public class PlayerListener implements Listener {
 
                 User user = userCache.get(uuid)
                         .orElseThrow();
-                // fetch prefix
-                String prefix = plugin.getServiceRegistry().get(CacheService.class)
-                        .get(GroupCache.class)
-                        .get(user.getMainGroupName())
-                        .orElseThrow()
-                        .getPrefix();
 
-                Bukkit.broadcast(Component.text("[" + prefix + "§r] §e" + name + " left!"));
+                Bukkit.broadcast(Component.text("[" + user.getMainGroup().getPrefix() + "§r] §e" + name + " left!"));
                 userCache.release(uuid);
             } catch (ExecutionException e) {
                 e.printStackTrace();
@@ -136,12 +123,7 @@ public class PlayerListener implements Listener {
                     .get(event.getPlayer().getUniqueId())
                     .orElseThrow();
 
-            String prefix = cacheService.get(GroupCache.class)
-                    .get(user.getMainGroupName())
-                    .orElseThrow()
-                    .getPrefix();
-
-            ChatRenderer renderer = new CustomChatRenderer(prefix);
+            ChatRenderer renderer = new CustomChatRenderer(user.getMainGroup().getPrefix());
             event.renderer(renderer);
         } catch (ExecutionException e) {
             // TODO: 02/09/2022 notify player?

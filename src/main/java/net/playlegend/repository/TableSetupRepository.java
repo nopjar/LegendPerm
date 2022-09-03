@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import net.playlegend.LegendPerm;
 import org.intellij.lang.annotations.Language;
 
 class TableSetupRepository extends Repository {
@@ -33,7 +34,7 @@ class TableSetupRepository extends Repository {
             CREATE TABLE IF NOT EXISTS `group_permissions` (
             	`group_id` VARCHAR(50) NOT NULL,
             	`permission` VARCHAR(50) NOT NULL COLLATE 'utf8mb4_general_ci',
-            	`type` TINYINT(4) NOT NULL DEFAULT '0',
+            	`mode` TINYINT(4) NOT NULL DEFAULT '0',
             	UNIQUE INDEX `group_id` (`group_id`, `permission`) USING BTREE,
             	INDEX `FK__group_2` (`group_id`) USING BTREE,
             	CONSTRAINT `FK__group_2` FOREIGN KEY (`group_id`) REFERENCES `group` (`name`) ON UPDATE NO ACTION ON DELETE CASCADE
@@ -64,8 +65,8 @@ class TableSetupRepository extends Repository {
 
     private final List<String> queries;
 
-    public TableSetupRepository(HikariConfig config) {
-        super(config);
+    public TableSetupRepository(LegendPerm plugin, HikariConfig config) {
+        super(plugin, config);
 
         this.queries = new ArrayList<>();
         this.queries.add(CREATE_GROUP_TABLE);

@@ -4,7 +4,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;

@@ -6,7 +6,6 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
@@ -91,8 +90,7 @@ class RemoveUserFromGroupCommand implements Command<Object> {
 
             // save to database
             userRepository.addUserToGroup(user.getUuid(), group.getName(), validUntil);
-            cacheService.get(UserCache.class)
-                    .refresh(user.getUuid());
+            user.removeGroup(group);
             sender.sendMessage(user.getName() + " grouptime reduced to " + TimeParser.epochSecondsToInline(validUntil) + ".");
         } catch (SQLException | ExecutionException e) {
             e.printStackTrace();

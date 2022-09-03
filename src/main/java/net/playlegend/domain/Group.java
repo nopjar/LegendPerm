@@ -117,6 +117,10 @@ public class Group extends Publisher<Group.Operation, Group> {
         }
     }
 
+    public void delete() {
+        this.notifySubscribers(Operation.DELETE, this);
+    }
+
     @Override
     public String toString() {
         return "Group{" +
@@ -161,6 +165,7 @@ public class Group extends Publisher<Group.Operation, Group> {
         PROPERTY_CHANGE,
         PERMISSION_CHANGE,
         WEIGHT_CHANGE,
+        DELETE
         ;
     }
 

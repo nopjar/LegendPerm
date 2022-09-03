@@ -44,6 +44,7 @@ class GroupDeleteCommand implements Command<Object> {
                     .get(GroupRepository.class)
                     .deleteGroup(group);
 
+            group.delete();
             sender.sendMessage("Group " + group.getName() + " deleted!");
         } catch (SQLException | ExecutionException e) {
             e.printStackTrace();

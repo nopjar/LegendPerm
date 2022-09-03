@@ -10,6 +10,7 @@ import net.kyori.adventure.text.Component;
 import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
 import net.playlegend.cache.UserCache;
+import net.playlegend.domain.Group;
 import net.playlegend.domain.User;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -41,8 +42,8 @@ class InfoCommand implements Command<Object> {
             User user = cacheResult.get();
             player.sendMessage(Component.text("======= " + user.getName() + " ======="));
             player.sendMessage(Component.text("Groups: " + (user.getGroups().isEmpty() ? "none" : "")));
-            for (Map.Entry<String, Long> entry : user.getGroups().entrySet()) {
-                player.sendMessage(Component.text("- " + entry.getKey() + (entry.getValue() == 0 ? "" : "(" + entry.getValue() + ")")));
+            for (Map.Entry<Group, Long> entry : user.getGroups().entrySet()) {
+                player.sendMessage(Component.text("- " + entry.getKey().getName() + (entry.getValue() == 0 ? "" : "(" + entry.getValue() + ")")));
             }
             player.sendMessage(Component.text("======= " + user.getName() + " ======="));
         } catch (ExecutionException e) {

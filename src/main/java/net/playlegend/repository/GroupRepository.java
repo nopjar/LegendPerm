@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import net.playlegend.LegendPerm;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.Permission;
 import net.playlegend.observer.GroupListener;
@@ -27,10 +28,18 @@ public class GroupRepository extends Repository {
 
     @Language("MariaDB")
     private static final String SELECT_GROUP_BY_NAME = """
-            SELECT `group`.name as group_name, `group`.weight as group_weight, `group`.prefix as group_prefix, `group`.suffix as group_suffix, gp.permission, gp.type
+            SELECT `group`.name as group_name, `group`.weight as group_weight, `group`.prefix as group_prefix, `group`.suffix as group_suffix, gp.permission, gp.mode
             FROM `group`
             LEFT JOIN group_permissions gp on `group`.name = gp.group_id
             WHERE `group`.name = ?;
+            """;
+
+    @Language("MariaDB")
+    private static final String SELECT_ALL_GROUPS = """
+            SELECT `group`.name as group_name, `group`.weight as group_weight, `group`.prefix as group_prefix, `group`.suffix as group_suffix, gp.permission, gp.mode
+            FROM `group`
+            LEFT JOIN group_permissions gp on `group`.name = gp.group_id
+            ORDER BY `group`.name
             """;
 
     @Language("MariaDB")
@@ -49,8 +58,8 @@ public class GroupRepository extends Repository {
     @Language("MariaDB")
     private static final String ADD_PERM_TO_GROUP = """
             INSERT INTO group_permissions
-            (group_id, permission, type) VALUES (?, ?, ?)
-            ON DUPLICATE KEY UPDATE type = ?;
+            (group_id, permission, mode) VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE mode = ?;
             """;
 
     @Language("MariaDB")
@@ -66,8 +75,8 @@ public class GroupRepository extends Repository {
             ORDER BY `name`;
             """;
 
-    public GroupRepository(HikariConfig config) {
-        super(config);
+    public GroupRepository(LegendPerm plugin, HikariConfig config) {
+        super(plugin, config);
     }
 
     // no group returned on purpose
@@ -117,14 +126,79 @@ public class GroupRepository extends Repository {
                     // load information about group permissions
                     String permissionString = set.getString("permission");
                     if (permissionString == null) break; // break out of loop as group does not have any permissions!
-                    boolean permissionType = set.getBoolean("type");
-                    permissions.add(new Permission(permissionString, permissionType));
+                    boolean permissionMode = set.getBoolean("mode");
+                    permissions.add(new Permission(permissionString, permissionMode));
                 } while (set.next());
 
                 Group group = new Group(groupName, groupWeight, groupPrefix, groupSuffix, permissions);
-                group.subscribe(new GroupListener(), Group.Operation.WEIGHT_CHANGE, Group.Operation.PERMISSION_CHANGE);
+                group.subscribe(new GroupListener(plugin), Group.Operation.WEIGHT_CHANGE, Group.Operation.PERMISSION_CHANGE);
                 return group;
             }
+        }
+    }
+
+    public List<Group> selectAllGroups() throws SQLException {
+        try (Connection connection = getDataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(SELECT_ALL_GROUPS)) {
+
+            List<Group> list = new ArrayList<>();
+            try (ResultSet set = statement.executeQuery()) {
+                String groupName = "";
+                int groupWeight = 0;
+                String groupPrefix = "";
+                String groupSuffix = "";
+                Set<Permission> permissions = new HashSet<>();
+                boolean firstRun = true;
+                while (set.next()) {
+                    String newName = set.getString("group_name");
+                    if (!groupName.equals(newName) || firstRun) {
+                        if (!firstRun) {
+                            // add previous data to list
+                            list.add(getGroup(groupName, groupWeight, groupPrefix, groupSuffix, new HashSet<>(permissions)));
+                            permissions.clear();
+                        } else {
+                            firstRun = false;
+                        }
+
+                        // load new data
+                        groupName = newName;
+                        groupWeight = set.getInt("group_weight");
+                        groupPrefix = set.getString("group_prefix");
+                        groupSuffix = set.getString("group_suffix");
+                    }
+
+                    // load information about group permissions
+                    String permissionString = set.getString("permission");
+                    if (permissionString == null) continue;
+                    boolean permissionMode = set.getBoolean("mode");
+                    permissions.add(new Permission(permissionString, permissionMode));
+                }
+
+                // adding last collected group data
+                list.add(getGroup(groupName, groupWeight, groupPrefix, groupSuffix, new HashSet<>(permissions)));
+            }
+            return list;
+        }
+    }
+
+    private Group getGroup(String groupName, int groupWeight, String groupPrefix, String groupSuffix, Set<Permission> permissions) {
+        Group group = new Group(groupName, groupWeight, groupPrefix, groupSuffix, permissions);
+        group.subscribe(new GroupListener(plugin), Group.Operation.WEIGHT_CHANGE, Group.Operation.PERMISSION_CHANGE);
+        return group;
+    }
+
+    public List<String> selectAllGroupNames() throws SQLException {
+        try (Connection connection = getDataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(SELECT_ALL_GROUP_NAMES)) {
+
+            List<String> list = new ArrayList<>();
+            try (ResultSet set = statement.executeQuery()) {
+                while (set.next()) {
+                    list.add(set.getString("name"));
+                }
+            }
+
+            return list;
         }
     }
 
@@ -172,21 +246,6 @@ public class GroupRepository extends Repository {
             statement.setString(2, permission);
 
             statement.executeUpdate();
-        }
-    }
-
-    public List<String> selectAllGroupNames() throws SQLException {
-        try (Connection connection = getDataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(SELECT_ALL_GROUP_NAMES)) {
-
-            List<String> list = new ArrayList<>();
-            try (ResultSet set = statement.executeQuery()) {
-                while (set.next()) {
-                    list.add(set.getString("name"));
-                }
-            }
-
-            return list;
         }
     }
 

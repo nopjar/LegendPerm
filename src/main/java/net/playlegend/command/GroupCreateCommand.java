@@ -8,7 +8,6 @@ import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
 import net.playlegend.cache.GroupCache;
-import net.playlegend.domain.Group;
 import net.playlegend.repository.GroupRepository;
 import net.playlegend.repository.RepositoryService;
 import org.bukkit.ChatColor;
@@ -45,6 +44,7 @@ class GroupCreateCommand implements Command<Object> {
             plugin.getServiceRegistry().get(RepositoryService.class)
                     .get(GroupRepository.class)
                     .createGroup(groupName, weight, prefix, suffix);
+            groupCache.refresh(groupName);
 
             sender.sendMessage("Group created! " + groupName);
         } catch (SQLException | ExecutionException e) {

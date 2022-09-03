@@ -1,7 +1,6 @@
 package net.playlegend.domain;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import net.playlegend.misc.Publisher;
@@ -10,21 +9,18 @@ public class User extends Publisher<User.Operation, User> {
 
     private final UUID uuid;
     private final String name;
-    private Map<String, Long> groups;
+    private Map<Group, Long> groups;
 
-    public User(UUID uuid, String name) {
-        this(uuid, name, new LinkedHashMap<>());
-    }
-
-    public User(UUID uuid, String name, Map<String, Long> groups) {
+    public User(UUID uuid, String name, Map<Group, Long> groups) {
         super(Operation.GROUP_CHANGE);
         this.uuid = uuid;
         this.name = name;
         this.groups = groups;
     }
 
-    public String getMainGroupName() {
-        if (groups.isEmpty()) return "";
+    public Group getMainGroup() {
+        if (groups.isEmpty())
+            throw new IllegalStateException("player has no groups");
 
         return groups.keySet().iterator().next();
     }
@@ -37,71 +33,75 @@ public class User extends Publisher<User.Operation, User> {
         return name;
     }
 
-    public void addGroup(int index, String groupName, long validUntil) {
-        if (index > this.groups.size())
-            throw new IndexOutOfBoundsException(index + " out of bounds " + this.groups.size());
-
-        if (index == this.groups.size()) {
-            this.groups.put(groupName, validUntil);
-            this.notifySubscribers(Operation.GROUP_CHANGE, this);
-        } else {
-            Map<String, Long> updatedGroups = new LinkedHashMap<>(this.groups.size() + 1);
-            int i = 0;
-            for (Map.Entry<String, Long> entry : this.groups.entrySet()) {
-                System.out.println("Entry: " + entry);
-                System.out.println("Current index: " + i);
-                System.out.println("Needed index: " + index);
-                if (i == index)
-                    updatedGroups.put(groupName, validUntil);
-
-                updatedGroups.put(entry.getKey(), entry.getValue());
-                i++;
-            }
-            System.out.println("Before: " + groups);
-            System.out.println("Now: " + updatedGroups);
-            setGroups(updatedGroups);
-        }
-    }
-
-    public void updateValidUntil(String groupName, long validUntil) {
-        if (this.groups.replace(groupName, validUntil) == null) {
+    public void addGroup(Group group, long validUntil) {
+        if (this.groups.put(group, validUntil) == null) {
             this.notifySubscribers(Operation.GROUP_CHANGE, this);
         }
     }
 
-    public void removeGroup(String group) {
+    public void updateValidUntil(Group group, long validUntil) {
+        if (this.groups.replace(group, validUntil) == null) {
+            this.notifySubscribers(Operation.GROUP_CHANGE, this);
+        }
+    }
+
+    public void removeGroup(Group group) {
         if (this.groups.remove(group) != null)
             this.notifySubscribers(Operation.GROUP_CHANGE, this);
     }
 
-    public ImmutableMap<String, Long> getGroups() {
+    public ImmutableMap<Group, Long> getGroups() {
         return ImmutableMap.copyOf(groups);
     }
 
-    public void setGroups(Map<String, Long> groups) {
+    public void setGroups(Map<Group, Long> groups) {
         this.groups = groups;
         this.notifySubscribers(Operation.GROUP_CHANGE, this);
     }
 
+    public boolean hasGroup(Group group) {
+        return this.groups.containsKey(group);
+    }
+
     public boolean hasGroup(String groupName) {
-        return this.groups.containsKey(groupName);
+        for (Group group : this.groups.keySet()) {
+            if (group.getName().equalsIgnoreCase(groupName))
+                return true;
+        }
+
+        return false;
+    }
+
+    public boolean hasGroupPermanent(Group group) {
+        Long validUntil;
+        return (((validUntil = groups.get(group)) != null) && validUntil == 0);
     }
 
     public boolean hasGroupPermanent(String groupName) {
-        Long validUntil;
-        return (((validUntil = groups.get(groupName)) != null) && validUntil == 0);
+        for (Map.Entry<Group, Long> entry : this.groups.entrySet()) {
+            if (entry.getKey().getName().equalsIgnoreCase(groupName)) {
+                return (entry.getValue() == 0);
+            }
+        }
+
+        return false;
     }
 
-    public boolean hasGroupTemporary(String groupName) {
-        Long validUntil;
-        return (((validUntil = groups.get(groupName)) != null) && validUntil != 0);
-    }
-
-    public long getGroupValidUntil(String name) {
-        if (!hasGroup(name))
+    public long getGroupValidUntil(Group group) {
+        if (!hasGroup(group))
             throw new IllegalArgumentException("player does not have group!");
 
-        return groups.get(name);
+        return groups.get(group);
+    }
+
+    public long getGroupValidUntil(String groupName) {
+        for (Map.Entry<Group, Long> entry : this.groups.entrySet()) {
+            if (entry.getKey().getName().equalsIgnoreCase(groupName)) {
+                return entry.getValue();
+            }
+        }
+
+        throw new IllegalArgumentException("user does not have group " + groupName);
     }
 
     public enum Operation {

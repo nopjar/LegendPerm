@@ -19,13 +19,13 @@ public class RepositoryService extends Service {
 
         // we do not put TableSetupRepository in here on purpose as it should not be used outside
         HikariConfig hikariConfig = HikariOperations.loadHikariConfig(config);
-        this.repositories.put(GroupRepository.class, new GroupRepository(hikariConfig));
-        this.repositories.put(UserRepository.class, new UserRepository(hikariConfig));
+        this.repositories.put(GroupRepository.class, new GroupRepository(plugin, hikariConfig));
+        this.repositories.put(UserRepository.class, new UserRepository(plugin, hikariConfig));
     }
 
     @Override
     public void initialize() throws ServiceInitializeException {
-        TableSetupRepository tableSetupRepository = new TableSetupRepository(HikariOperations.getHikariConfig());
+        TableSetupRepository tableSetupRepository = new TableSetupRepository(plugin, HikariOperations.getHikariConfig());
         try {
             tableSetupRepository.setupTables();
             tableSetupRepository.getDataSource().shutdown();

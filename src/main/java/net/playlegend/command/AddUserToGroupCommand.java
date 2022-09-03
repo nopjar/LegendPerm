@@ -5,8 +5,6 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
@@ -15,7 +13,6 @@ import net.playlegend.cache.GroupCache;
 import net.playlegend.cache.UserCache;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.User;
-import net.playlegend.misc.GroupWeightComparator;
 import net.playlegend.repository.RepositoryService;
 import net.playlegend.repository.UserRepository;
 import net.playlegend.time.TimeParser;
@@ -90,7 +87,7 @@ class AddUserToGroupCommand implements Command<Object> {
 
             // save to database
             userRepository.addUserToGroup(user.getUuid(), group.getName(), validUntil);
-            updateUserGroups(groupCache, user, group, validUntil);
+            user.addGroup(group, validUntil);
             if (validUntil == 0) {
                 sender.sendMessage("Added " + user.getName() + " permanently to group " + group.getName() + "!");
             } else {
@@ -102,18 +99,6 @@ class AddUserToGroupCommand implements Command<Object> {
         }
 
         return 1;
-    }
-
-    private void updateUserGroups(GroupCache groupCache, User user, Group newGroup, long validUntil) throws ExecutionException {
-        List<Group> groups = groupCache.getAll(user.getGroups().keySet())
-                .values()
-                .stream()
-                .map(Optional::orElseThrow)
-                .toList();
-
-        // TODO: 03/09/2022 implement own search algorithm (https://www.geeksforgeeks.org/search-insert-position-of-k-in-a-sorted-array/)
-        int index = Collections.binarySearch(groups, newGroup, new GroupWeightComparator());
-        user.addGroup(index, newGroup.getName(), validUntil);
     }
 
     private <T> T getArgumentOrDefault(CommandContext<Object> context, String name, Class<T> type, T def) {
