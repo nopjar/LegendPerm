@@ -3,16 +3,13 @@ package net.playlegend.command;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import java.time.Instant;
-import java.util.Date;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import net.kyori.adventure.text.Component;
 import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
 import net.playlegend.cache.UserCache;
-import net.playlegend.domain.Group;
-import net.playlegend.domain.TemporaryGroup;
 import net.playlegend.domain.User;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -43,17 +40,9 @@ class InfoCommand implements Command<Object> {
 
             User user = cacheResult.get();
             player.sendMessage(Component.text("======= " + user.getName() + " ======="));
-            player.sendMessage(Component.text("Groups: " + (user.getGroups().size() == 0 ? "none" : "")));
-            for (Group group : user.getGroups()) {
-                player.sendMessage(Component.text("---------------------"));
-                player.sendMessage(Component.text("Name: " + group.getName()));
-                player.sendMessage(Component.text("Weight: " + group.getWeight()));
-                player.sendMessage(Component.text("Prefix: " + group.getPrefix()));
-                player.sendMessage(Component.text("Suffix: " + group.getSuffix()));
-                player.sendMessage(Component.text("Permissions: " + group.getPermissions()));
-                if (group instanceof TemporaryGroup temporaryGroup) {
-                    player.sendMessage(Component.text("Expires in: " + Date.from(Instant.ofEpochSecond(temporaryGroup.getValidUntil()))));
-                }
+            player.sendMessage(Component.text("Groups: " + (user.getGroups().isEmpty() ? "none" : "")));
+            for (Map.Entry<String, Long> entry : user.getGroups().entrySet()) {
+                player.sendMessage(Component.text("- " + entry.getKey() + (entry.getValue() == 0 ? "" : "(" + entry.getValue() + ")")));
             }
             player.sendMessage(Component.text("======= " + user.getName() + " ======="));
         } catch (ExecutionException e) {

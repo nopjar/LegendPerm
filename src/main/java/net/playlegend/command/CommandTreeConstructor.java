@@ -69,6 +69,9 @@ class CommandTreeConstructor {
                                                 )
                                         )
                                 )
+                                .then(literal("delete")
+                                        .executes(new GroupDeleteCommand(plugin))
+                                )
                                 .then(literal("info")
                                         .executes(new GroupInfoCommand(plugin))
                                 )
@@ -148,7 +151,7 @@ class CommandTreeConstructor {
 
         @Override
         public @NotNull CompletableFuture<Suggestions> getSuggestions(CommandContext<Object> context, SuggestionsBuilder builder) throws CommandSyntaxException {
-            return builder.suggest("", new LiteralMessage("<" + tooltip + ">")).buildFuture();
+            return builder.suggest("<" + tooltip + ">").buildFuture();
         }
 
     }

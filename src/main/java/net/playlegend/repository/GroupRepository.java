@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Set;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.Permission;
+import net.playlegend.observer.GroupListener;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -69,7 +70,9 @@ public class GroupRepository extends Repository {
         super(config);
     }
 
-    public Group createGroup(String name, int weight, String prefix, String suffix) throws SQLException {
+    // no group returned on purpose
+    //  reason: we do not want to clutter up things with subscribers and the cache
+    public void createGroup(String name, int weight, String prefix, String suffix) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(CREATE_GROUP)) {
 
@@ -79,7 +82,6 @@ public class GroupRepository extends Repository {
             statement.setString(4, suffix);
 
             statement.executeUpdate();
-            return new Group(name, weight, prefix, suffix, new HashSet<>());
         }
     }
 
@@ -119,7 +121,9 @@ public class GroupRepository extends Repository {
                     permissions.add(new Permission(permissionString, permissionType));
                 } while (set.next());
 
-                return new Group(groupName, groupWeight, groupPrefix, groupSuffix, permissions);
+                Group group = new Group(groupName, groupWeight, groupPrefix, groupSuffix, permissions);
+                group.subscribe(new GroupListener(), Group.Operation.WEIGHT_CHANGE, Group.Operation.PERMISSION_CHANGE);
+                return group;
             }
         }
     }
@@ -147,14 +151,14 @@ public class GroupRepository extends Repository {
         }
     }
 
-    public void updatePermissionInGroup(@NotNull Group group, String permission, boolean mode) throws SQLException {
+    public void updatePermissionInGroup(@NotNull Group group, Permission permission) throws SQLException {
         try (Connection connection = getDataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(ADD_PERM_TO_GROUP)) {
 
             statement.setString(1, group.getName());
-            statement.setString(2, permission);
-            statement.setBoolean(3, mode);
-            statement.setBoolean(4, mode);
+            statement.setString(2, permission.getNode());
+            statement.setBoolean(3, permission.getMode());
+            statement.setBoolean(4, permission.getMode());
 
             statement.executeUpdate();
         }

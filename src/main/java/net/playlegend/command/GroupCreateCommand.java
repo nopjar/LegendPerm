@@ -42,11 +42,11 @@ class GroupCreateCommand implements Command<Object> {
                 return 1;
             }
 
-            Group group = plugin.getServiceRegistry().get(RepositoryService.class)
+            plugin.getServiceRegistry().get(RepositoryService.class)
                     .get(GroupRepository.class)
                     .createGroup(groupName, weight, prefix, suffix);
 
-            sender.sendMessage("Group created! " + group.toString());
+            sender.sendMessage("Group created! " + groupName);
         } catch (SQLException | ExecutionException e) {
             e.printStackTrace();
             sender.sendMessage("An unexpected error occurred!");

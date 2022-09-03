@@ -7,6 +7,7 @@ import com.mojang.brigadier.suggestion.Suggestion;
 import com.mojang.brigadier.suggestion.Suggestions;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -56,18 +57,17 @@ class CommandMediator implements CommandExecutor, TabCompleter {
             return null;
         }
 
+        if (suggestions.isEmpty())
+            return null;
+
         List<String> result = new ArrayList<>();
         for (Suggestion suggestion : suggestions.getList()) {
-            if (suggestion.getTooltip() != null) {
-                result.add(suggestion.getTooltip().getString());
-            }
-
-            if (!suggestion.getText().isBlank()) {
+            if (!suggestion.getText().isBlank() && suggestion.getText().toLowerCase().startsWith(args[args.length - 1].toLowerCase())) {
                 result.add(suggestion.getText());
             }
         }
 
-        return result;
+        return result.isEmpty() ? null : result;
     }
 
     private String buildCommand(String label, String[] args) {

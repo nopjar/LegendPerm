@@ -1,17 +1,11 @@
 package net.playlegend.domain;
 
+import java.util.Iterator;
 import java.util.Set;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import net.playlegend.misc.Publisher;
 import org.jetbrains.annotations.NotNull;
 
-@AllArgsConstructor
-@Getter
-@Setter
-@ToString
-public class Group {
+public class Group extends Publisher<Group.Operation, Group> {
 
     private String name;
     private int weight;
@@ -19,14 +13,23 @@ public class Group {
     private String suffix;
     private Set<Permission> permissions;
 
+    public Group(String name, int weight, String prefix, String suffix, Set<Permission> permissions) {
+        super(Operation.values());
+        this.name = name;
+        this.weight = weight;
+        this.prefix = prefix;
+        this.suffix = suffix;
+        this.permissions = permissions;
+    }
+
     public boolean hasPermission(@NotNull Permission permission) {
-        return hasPermission(permission.node());
+        return hasPermission(permission.getNode());
     }
 
     public boolean hasPermission(@NotNull String permission) {
         for (Permission perm : this.permissions) {
-            if (perm.node().equals(permission)) {
-                return perm.mode();
+            if (perm.getNode().equals(permission)) {
+                return perm.getMode();
             }
         }
 
@@ -40,6 +43,89 @@ public class Group {
             case SUFFIX -> suffix = value;
             default -> throw new IllegalArgumentException("Unknown property: " + property);
         }
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+        this.notifySubscribers(Operation.PROPERTY_CHANGE, this);
+    }
+
+    public int getWeight() {
+        return weight;
+    }
+
+    public void setWeight(int weight) {
+        this.weight = weight;
+        this.notifySubscribers(Operation.WEIGHT_CHANGE, this);
+    }
+
+    public String getPrefix() {
+        return prefix;
+    }
+
+    public void setPrefix(String prefix) {
+        this.prefix = prefix;
+        this.notifySubscribers(Operation.PROPERTY_CHANGE, this);
+    }
+
+    public String getSuffix() {
+        return suffix;
+    }
+
+    public void setSuffix(String suffix) {
+        this.suffix = suffix;
+        this.notifySubscribers(Operation.PROPERTY_CHANGE, this);
+    }
+
+    public Set<Permission> getPermissions() {
+        return permissions;
+    }
+
+    public void addPermission(Permission permission) {
+        boolean contains = false;
+        boolean update = false;
+        for (Permission groupPerm : this.permissions) {
+            if (groupPerm.getNode().equalsIgnoreCase(permission.getNode())) {
+                contains = true;
+                if (groupPerm.getMode() != permission.getMode()) {
+                    groupPerm.setMode(permission.getMode());
+                    update = true;
+                }
+                break;
+            }
+        }
+        if (!contains)
+            update = this.permissions.add(permission);
+
+        if (update)
+            this.notifySubscribers(Operation.PERMISSION_CHANGE, this);
+    }
+
+    public void removePermission(String permNode) {
+        Iterator<Permission> iterator = this.permissions.iterator();
+        while (iterator.hasNext()) {
+            String permission = iterator.next().getNode();
+            if (permission.equalsIgnoreCase(permNode)) {
+                iterator.remove();
+                this.notifySubscribers(Operation.PERMISSION_CHANGE, this);
+                break;
+            }
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "Group{" +
+               "name='" + name + '\'' +
+               ", weight=" + weight +
+               ", prefix='" + prefix + '\'' +
+               ", suffix='" + suffix + '\'' +
+               ", permissions=" + permissions +
+               '}';
     }
 
     public enum Property {
@@ -68,6 +154,14 @@ public class Group {
 
             return null;
         }
+
+    }
+
+    public enum Operation {
+        PROPERTY_CHANGE,
+        PERMISSION_CHANGE,
+        WEIGHT_CHANGE,
+        ;
     }
 
 }

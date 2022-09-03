@@ -3,6 +3,8 @@ package net.playlegend.cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableMap;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
@@ -40,6 +42,11 @@ public class PermissionCache extends Cache<UUID, PermissionAttachment> {
     @Override
     public PermissionAttachment get(UUID key) throws ExecutionException {
         return this.cache.get(key);
+    }
+
+    @Override
+    public ImmutableMap<UUID, PermissionAttachment> getAll(Iterable<UUID> iterable) throws ExecutionException {
+        return this.cache.getAll(iterable);
     }
 
     @Override

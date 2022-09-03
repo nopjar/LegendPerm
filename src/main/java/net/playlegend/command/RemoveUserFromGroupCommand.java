@@ -6,9 +6,14 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
+import net.playlegend.cache.CacheService;
+import net.playlegend.cache.GroupCache;
+import net.playlegend.cache.UserCache;
 import net.playlegend.domain.Group;
-import net.playlegend.domain.TemporaryGroup;
 import net.playlegend.domain.User;
 import net.playlegend.repository.RepositoryService;
 import net.playlegend.repository.UserRepository;
@@ -33,58 +38,63 @@ class RemoveUserFromGroupCommand implements Command<Object> {
         String time = getArgumentOrDefault(context, "time", String.class, null);
 
         try {
-            UserRepository userRepository = plugin.getServiceRegistry().get(RepositoryService.class)
-                    .get(UserRepository.class);
-
+            CacheService cacheService = plugin.getServiceRegistry().get(CacheService.class);
+            Optional<User> cacheResult = cacheService.get(UserCache.class)
+                    .get(userName);
             // check if user exists
-            User user = userRepository.selectUserByName(userName);
-            if (user == null) {
+            if (cacheResult.isEmpty()) {
                 sender.sendMessage("Unknown User!");
                 return 1;
             }
+            User user = cacheResult.get();
 
             // check if user has group
-            Group group = null;
-            for (Group userGroup : user.getGroups()) {
-                if (userGroup.getName().equalsIgnoreCase(groupName)) {
-                    group = userGroup;
-                }
-            }
-
-            if (group == null) {
+            if (!user.hasGroup(groupName)) {
                 sender.sendMessage("User does not have group!");
                 return 1;
             }
 
+            Group group = cacheService.get(GroupCache.class)
+                    .get(groupName)
+                    .orElseThrow();
+
+            UserRepository userRepository = plugin.getServiceRegistry().get(RepositoryService.class)
+                    .get(UserRepository.class);
             // if group get permanently removed, there is no need to check for time
             //  if time is given, we need to check if group is temporary
             if (time == null) {
                 userRepository.removeUserFromGroup(user.getUuid(), group.getName());
+                cacheService.get(UserCache.class)
+                        .refresh(user.getUuid());
                 sender.sendMessage("User " + user.getName() + " removed from Group " + group.getName() + ".");
                 return 0;
             }
 
-            if (!(group instanceof TemporaryGroup tg)) {
+            if (user.hasGroupPermanent(groupName)) {
                 sender.sendMessage("Can't remove time from Group as user has the group permanent!");
                 return 0;
             }
 
             // get valid until reduced by the removed time
-            LocalDateTime validUntilDT = TimeParser.localDateTimeFromEpochSeconds(tg.getValidUntil());
+            LocalDateTime validUntilDT = TimeParser.localDateTimeFromEpochSeconds(user.getGroupValidUntil(groupName));
             LocalDateTime now = LocalDateTime.now();
             long seconds = new TimeParser(time, now).getInSeconds();
             LocalDateTime newValidUntilDT = validUntilDT.minus(seconds, ChronoUnit.SECONDS);
             if (newValidUntilDT.isBefore(now)) {
                 userRepository.removeUserFromGroup(user.getUuid(), group.getName());
+                cacheService.get(UserCache.class)
+                        .refresh(user.getUuid());
                 sender.sendMessage("User " + user.getName() + " removed from Group " + group.getName() + ".");
                 return 0;
             }
-            long validUntil = tg.getValidUntil() - seconds;
+            long validUntil = user.getGroupValidUntil(groupName) - seconds;
 
             // save to database
             userRepository.addUserToGroup(user.getUuid(), group.getName(), validUntil);
+            cacheService.get(UserCache.class)
+                    .refresh(user.getUuid());
             sender.sendMessage(user.getName() + " grouptime reduced to " + TimeParser.epochSecondsToInline(validUntil) + ".");
-        } catch (SQLException e) {
+        } catch (SQLException | ExecutionException e) {
             e.printStackTrace();
             sender.sendMessage("An unexpected error occurred!");
         }

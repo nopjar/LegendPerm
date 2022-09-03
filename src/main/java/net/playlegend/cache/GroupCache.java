@@ -3,8 +3,10 @@ package net.playlegend.cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableMap;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
 import net.playlegend.domain.Group;
@@ -40,6 +42,11 @@ public class GroupCache extends Cache<String, Optional<Group>> {
     @Override
     public Optional<Group> get(String key) throws ExecutionException {
         return this.cache.get(key.toLowerCase(Locale.ROOT));
+    }
+
+    @Override
+    public ImmutableMap<String, Optional<Group>> getAll(Iterable<String> iterable) throws ExecutionException {
+        return this.cache.getAll(iterable);
     }
 
     @Override

@@ -5,14 +5,17 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
 import net.playlegend.cache.GroupCache;
+import net.playlegend.cache.UserCache;
 import net.playlegend.domain.Group;
-import net.playlegend.domain.TemporaryGroup;
 import net.playlegend.domain.User;
+import net.playlegend.misc.GroupWeightComparator;
 import net.playlegend.repository.RepositoryService;
 import net.playlegend.repository.UserRepository;
 import net.playlegend.time.TimeParser;
@@ -36,48 +39,42 @@ class AddUserToGroupCommand implements Command<Object> {
         String time = getArgumentOrDefault(context, "time", String.class, null);
 
         try {
+            CacheService cacheService = plugin.getServiceRegistry().get(CacheService.class);
             UserRepository userRepository = plugin.getServiceRegistry().get(RepositoryService.class)
                     .get(UserRepository.class);
 
             // check if user exists
-            User user = userRepository.selectUserByName(userName);
-            if (user == null) {
+            Optional<User> userCacheResult = cacheService.get(UserCache.class)
+                    .get(userName);
+            if (userCacheResult.isEmpty()) {
                 sender.sendMessage("Unknown User!");
                 return 1;
             }
+            User user = userCacheResult.get();
 
             // check if user has any time remaining in this group or is already permanently in this
             //  group.
-            Group group = null;
             long currentTime = 0;
-            for (Group userGroup : user.getGroups()) {
-                if (userGroup.getName().equalsIgnoreCase(groupName)) {
-                    // found group, check if temporary or not
-                    if (userGroup instanceof TemporaryGroup tg) {
-                        group = userGroup;
-                        currentTime = tg.getValidUntil();
-                        break;
-                    } else {
-                        sender.sendMessage("User is already permanent is this group!");
-                        return 1;
-                    }
+            if (user.hasGroup(groupName)) {
+                if (user.hasGroupPermanent(groupName)) {
+                    sender.sendMessage("User is already permanent is this group!");
+                    return 1;
+                } else {
+                    currentTime = user.getGroupValidUntil(groupName);
                 }
             }
+
+            GroupCache groupCache = cacheService.get(GroupCache.class);
+            Optional<Group> groupCacheResult = groupCache.get(groupName);
 
             // check for existence of group to give
             // this checks the case that the user just didn't have the group
-            if (group == null) {
-                Optional<Group> cacheResult = plugin.getServiceRegistry().get(CacheService.class)
-                        .get(GroupCache.class)
-                        .get(groupName);
-
-                if (cacheResult.isEmpty()) {
-                    sender.sendMessage("Group does not exist!");
-                    return 1;
-                } else {
-                    group = cacheResult.get();
-                }
+            if (groupCacheResult.isEmpty()) {
+                sender.sendMessage("Group does not exist!");
+                return 1;
             }
+
+            Group group = groupCacheResult.get();
 
             // calculate time in group (if time == null, the group is permanent)
             //  setting validUntil to 0 in the database causes the group to be permanent
@@ -93,6 +90,7 @@ class AddUserToGroupCommand implements Command<Object> {
 
             // save to database
             userRepository.addUserToGroup(user.getUuid(), group.getName(), validUntil);
+            updateUserGroups(groupCache, user, group, validUntil);
             if (validUntil == 0) {
                 sender.sendMessage("Added " + user.getName() + " permanently to group " + group.getName() + "!");
             } else {
@@ -104,6 +102,18 @@ class AddUserToGroupCommand implements Command<Object> {
         }
 
         return 1;
+    }
+
+    private void updateUserGroups(GroupCache groupCache, User user, Group newGroup, long validUntil) throws ExecutionException {
+        List<Group> groups = groupCache.getAll(user.getGroups().keySet())
+                .values()
+                .stream()
+                .map(Optional::orElseThrow)
+                .toList();
+
+        // TODO: 03/09/2022 implement own search algorithm (https://www.geeksforgeeks.org/search-insert-position-of-k-in-a-sorted-array/)
+        int index = Collections.binarySearch(groups, newGroup, new GroupWeightComparator());
+        user.addGroup(index, newGroup.getName(), validUntil);
     }
 
     private <T> T getArgumentOrDefault(CommandContext<Object> context, String name, Class<T> type, T def) {

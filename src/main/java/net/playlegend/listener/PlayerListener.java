@@ -3,6 +3,7 @@ package net.playlegend.listener;
 import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -10,6 +11,7 @@ import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
+import net.playlegend.cache.GroupCache;
 import net.playlegend.cache.PermissionCache;
 import net.playlegend.cache.UserCache;
 import net.playlegend.domain.Group;
@@ -56,27 +58,36 @@ public class PlayerListener implements Listener {
                     cacheResult = userCache.get(player.getUniqueId());
                     user = cacheResult.orElseThrow();
                 } else if (!(user = cacheResult.get()).getName().equals(player.getName())) {
-                    userRepository.updateUser(player.getUniqueId(), player.getName());
-                    userCache.refresh(player.getUniqueId());
+                    userRepository.updateUser(user);
+                    userCache.refresh(user.getUuid());
                     user = userCache.get(player.getUniqueId())
                             .orElseThrow();
                 }
+
+                // fetch permissions
+                List<Group> groups = plugin.getServiceRegistry().get(CacheService.class)
+                        .get(GroupCache.class)
+                        .getAll(user.getGroups().keySet())
+                        .values()
+                        .stream()
+                        .map(Optional::orElseThrow) // throw because user should not have any groups that don't exist!
+                        .toList();
 
                 // apply permissions
                 PermissionAttachment attachment = plugin.getServiceRegistry().get(CacheService.class)
                         .get(PermissionCache.class)
                         .get(player.getUniqueId());
-                for (Group group : user.getGroups()) {
+                for (Group group : groups) {
                     for (Permission permission : group.getPermissions()) {
-                        if (attachment.getPermissions().containsKey(permission.node()))
+                        if (attachment.getPermissions().containsKey(permission.getNode()))
                             continue;
 
-                        attachment.setPermission(permission.node(), permission.mode());
+                        attachment.setPermission(permission.getNode(), permission.getMode());
                     }
                 }
                 player.recalculatePermissions();
 
-                Bukkit.broadcast(Component.text("[" + user.getPrefix() + "§r] §e" + player.getName() + " joined!"));
+                Bukkit.broadcast(Component.text("[" + groups.get(0).getPrefix() + "§r] §e" + player.getName() + " joined!"));
             } catch (SQLException | ExecutionException e) {
                 e.printStackTrace();
             }
@@ -102,7 +113,14 @@ public class PlayerListener implements Listener {
 
                 User user = userCache.get(uuid)
                         .orElseThrow();
-                Bukkit.broadcast(Component.text("[" + user.getPrefix() + "§r] §e" + name + " left!"));
+                // fetch prefix
+                String prefix = plugin.getServiceRegistry().get(CacheService.class)
+                        .get(GroupCache.class)
+                        .get(user.getMainGroupName())
+                        .orElseThrow()
+                        .getPrefix();
+
+                Bukkit.broadcast(Component.text("[" + prefix + "§r] §e" + name + " left!"));
                 userCache.release(uuid);
             } catch (ExecutionException e) {
                 e.printStackTrace();
@@ -113,12 +131,17 @@ public class PlayerListener implements Listener {
     @EventHandler
     private void onPlayerChat(@NotNull AsyncChatEvent event) {
         try {
-            User user = plugin.getServiceRegistry().get(CacheService.class)
-                    .get(UserCache.class)
+            CacheService cacheService = plugin.getServiceRegistry().get(CacheService.class);
+            User user = cacheService.get(UserCache.class)
                     .get(event.getPlayer().getUniqueId())
                     .orElseThrow();
 
-            ChatRenderer renderer = new CustomChatRenderer(user.getPrefix());
+            String prefix = cacheService.get(GroupCache.class)
+                    .get(user.getMainGroupName())
+                    .orElseThrow()
+                    .getPrefix();
+
+            ChatRenderer renderer = new CustomChatRenderer(prefix);
             event.renderer(renderer);
         } catch (ExecutionException e) {
             // TODO: 02/09/2022 notify player?

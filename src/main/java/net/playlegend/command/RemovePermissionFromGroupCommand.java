@@ -43,7 +43,7 @@ class RemovePermissionFromGroupCommand implements Command<Object> {
             Group group = cacheResult.get();
             boolean found = false;
             for (Permission permission : group.getPermissions()) {
-                if (permission.node().equalsIgnoreCase(permissionNode)) {
+                if (permission.getNode().equalsIgnoreCase(permissionNode)) {
                     found = true;
                     break;
                 }
@@ -56,6 +56,7 @@ class RemovePermissionFromGroupCommand implements Command<Object> {
             plugin.getServiceRegistry().get(RepositoryService.class)
                     .get(GroupRepository.class)
                     .revokePermissionFromGroup(group, permissionNode);
+            group.removePermission(permissionNode);
 
             sender.sendMessage("Permission revoked!");
         } catch (SQLException | ExecutionException e) {

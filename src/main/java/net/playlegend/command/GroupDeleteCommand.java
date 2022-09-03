@@ -10,26 +10,24 @@ import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
 import net.playlegend.cache.GroupCache;
 import net.playlegend.domain.Group;
-import net.playlegend.domain.Permission;
 import net.playlegend.repository.GroupRepository;
 import net.playlegend.repository.RepositoryService;
 import org.bukkit.command.CommandSender;
+import org.jetbrains.annotations.NotNull;
 
-class AddPermissionToGroupCommand implements Command<Object> {
+class GroupDeleteCommand implements Command<Object> {
 
     private final LegendPerm plugin;
 
-    public AddPermissionToGroupCommand(LegendPerm plugin) {
+    public GroupDeleteCommand(LegendPerm plugin) {
         this.plugin = plugin;
     }
 
     @Override
-    public int run(CommandContext<Object> context) throws CommandSyntaxException {
+    public int run(@NotNull CommandContext<Object> context) throws CommandSyntaxException {
         CommandSender sender = (CommandSender) context.getSource();
 
         String groupName = context.getArgument("groupName", String.class);
-        String permissionNode = context.getArgument("permissionNode", String.class);
-        boolean mode = context.getArgument("mode", Boolean.class);
 
         try {
             Optional<Group> cacheResult = plugin.getServiceRegistry().get(CacheService.class)
@@ -37,23 +35,16 @@ class AddPermissionToGroupCommand implements Command<Object> {
                     .get(groupName);
 
             if (cacheResult.isEmpty()) {
-                sender.sendMessage("Group does not exist!");
+                sender.sendMessage("Group " + groupName + " does not exist!");
                 return 1;
             }
 
             Group group = cacheResult.get();
-            Permission permission = new Permission(permissionNode, mode);
-            if (group.getPermissions().contains(permission)) {
-                sender.sendMessage("Group does already contain this permission!");
-                return 1;
-            }
-
             plugin.getServiceRegistry().get(RepositoryService.class)
                     .get(GroupRepository.class)
-                    .updatePermissionInGroup(group, permission);
-            group.addPermission(permission);
+                    .deleteGroup(group);
 
-            sender.sendMessage("Added permission!");
+            sender.sendMessage("Group " + group.getName() + " deleted!");
         } catch (SQLException | ExecutionException e) {
             e.printStackTrace();
             sender.sendMessage("An unexpected error occurred!");

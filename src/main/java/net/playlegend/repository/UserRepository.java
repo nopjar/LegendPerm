@@ -5,17 +5,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
-import java.util.function.Predicate;
-import net.playlegend.domain.Group;
-import net.playlegend.domain.Permission;
-import net.playlegend.domain.TemporaryGroup;
 import net.playlegend.domain.User;
-import net.playlegend.misc.GroupWeightComparator;
+import net.playlegend.observer.UserListener;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -24,23 +18,22 @@ public class UserRepository extends Repository {
 
     @Language("MariaDB")
     private static final String BASE_SELECT_USER = """
-            SELECT user.uuid as user_id, user.name as user_name, g.name as group_name, g.weight as group_weight, g.prefix as group_prefix, g.suffix as group_suffix, ug.valid_until, gp.permission, gp.type
+            SELECT user.uuid as user_id, user.name as user_name, ug.group_id as group_name, ug.valid_until
             FROM user
             LEFT JOIN users_groups ug on user.uuid = ug.user_id
             LEFT JOIN `group` g on ug.group_id = g.name
-            LEFT JOIN group_permissions gp on g.name = gp.group_id
             """;
 
     @Language("MariaDB")
     private static final String SELECT_USER_BY_UUID = BASE_SELECT_USER + """
             WHERE user.uuid = ?
-            ORDER BY group_weight DESC;
+            ORDER BY g.weight DESC;
             """;
 
     @Language("MariaDB")
     private static final String SELECT_USER_BY_NAME = BASE_SELECT_USER + """
             WHERE user.name = ?
-            ORDER BY group_weight DESC;
+            ORDER BY g.weight DESC;
             """;
 
     @Language("MariaDB")
@@ -97,7 +90,7 @@ public class UserRepository extends Repository {
 
             UUID uuid = null;
             String userName = "";
-            Set<Group> groups = new TreeSet<>(new GroupWeightComparator());
+            Map<String, Long> groups = new LinkedHashMap<>();
             boolean firstRun = true;
             // using do-while, so we won't miss the first row in set
             do {
@@ -109,42 +102,16 @@ public class UserRepository extends Repository {
                 }
 
                 // load information about group
-                Group group;
                 String groupName = set.getString("group_name");
                 if (groupName == null) break; // break out of loop as user does not have any groups!
-
-                // check if group was already loaded once, if not -> fetch overall group information
-                // otherwise use already fetched data
-                if ((group = fetchFirst(groups, g -> g.getName().equals(groupName))) == null) {
-                    int groupWeight = set.getInt("group_weight");
-                    String groupPrefix = set.getString("group_prefix");
-                    String groupSuffix = set.getString("group_suffix");
-
-                    // if validUntil == 0, then it is a permanent group
-                    long validUntil = set.getLong("valid_until");
-                    if (validUntil == 0) {
-                        group = new Group(groupName, groupWeight, groupPrefix, groupSuffix, new HashSet<>());
-                    } else {
-                        group = new TemporaryGroup(groupName, groupWeight, groupPrefix, groupSuffix, new HashSet<>(), validUntil);
-                    }
-
-                    groups.add(group);
-                }
-
-                Permission permission = new Permission(set.getString("permission"), set.getBoolean("type"));
-                group.getPermissions().add(permission);
+                long validUntil = set.getLong("valid_until");
+                groups.put(groupName, validUntil);
             } while (set.next());
 
-            return new User(uuid, userName, groups);
+            User user = new User(uuid, userName, groups);
+            user.subscribe(new UserListener(), User.Operation.GROUP_CHANGE);
+            return user;
         }
-    }
-
-    // finds the first item, if present, which fulfills the predicate
-    private <T> T fetchFirst(Collection<T> list, Predicate<T> predicate) {
-        return list.stream()
-                .filter(predicate)
-                .findFirst()
-                .orElse(null);
     }
 
     public void addUserToGroup(@NotNull UUID uuid, String groupName, long validUntil) throws SQLException {
@@ -169,6 +136,10 @@ public class UserRepository extends Repository {
 
             statement.executeUpdate();
         }
+    }
+
+    public void updateUser(@NotNull User user) throws SQLException {
+        updateUser(user.getUuid(), user.getName());
     }
 
     public void updateUser(UUID uuid, String name) throws SQLException {
