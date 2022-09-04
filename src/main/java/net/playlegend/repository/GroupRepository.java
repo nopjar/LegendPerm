@@ -12,7 +12,7 @@ import java.util.Set;
 import net.playlegend.LegendPerm;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.Permission;
-import net.playlegend.observer.GroupListener;
+import net.playlegend.observer.GroupPermissionChangeListener;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -130,9 +130,7 @@ public class GroupRepository extends Repository {
                     permissions.add(new Permission(permissionString, permissionMode));
                 } while (set.next());
 
-                Group group = new Group(groupName, groupWeight, groupPrefix, groupSuffix, permissions);
-                group.subscribe(new GroupListener(plugin), Group.Operation.WEIGHT_CHANGE, Group.Operation.PERMISSION_CHANGE);
-                return group;
+                return getGroup(groupName, groupWeight, groupPrefix, groupSuffix, permissions);
             }
         }
     }
@@ -183,7 +181,7 @@ public class GroupRepository extends Repository {
 
     private Group getGroup(String groupName, int groupWeight, String groupPrefix, String groupSuffix, Set<Permission> permissions) {
         Group group = new Group(groupName, groupWeight, groupPrefix, groupSuffix, permissions);
-        group.subscribe(new GroupListener(plugin), Group.Operation.WEIGHT_CHANGE, Group.Operation.PERMISSION_CHANGE);
+        group.subscribe(new GroupPermissionChangeListener(plugin), Group.Operation.WEIGHT_CHANGE, Group.Operation.PERMISSION_CHANGE, Group.Operation.DELETE);
         return group;
     }
 

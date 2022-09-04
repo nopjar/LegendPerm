@@ -122,6 +122,12 @@ public class Group extends Publisher<Group.Operation, Group> {
     }
 
     @Override
+    protected void finalize() throws Throwable {
+        System.out.println(name + " collected!");
+        super.finalize();
+    }
+
+    @Override
     public String toString() {
         return "Group{" +
                "name='" + name + '\'' +

@@ -30,9 +30,9 @@ class GroupDeleteCommand implements Command<Object> {
         String groupName = context.getArgument("groupName", String.class);
 
         try {
-            Optional<Group> cacheResult = plugin.getServiceRegistry().get(CacheService.class)
-                    .get(GroupCache.class)
-                    .get(groupName);
+            GroupCache groupCache = plugin.getServiceRegistry().get(CacheService.class)
+                    .get(GroupCache.class);
+            Optional<Group> cacheResult = groupCache.get(groupName);
 
             if (cacheResult.isEmpty()) {
                 sender.sendMessage("Group " + groupName + " does not exist!");
@@ -45,6 +45,7 @@ class GroupDeleteCommand implements Command<Object> {
                     .deleteGroup(group);
 
             group.delete();
+            groupCache.release(groupName);
             sender.sendMessage("Group " + group.getName() + " deleted!");
         } catch (SQLException | ExecutionException e) {
             e.printStackTrace();

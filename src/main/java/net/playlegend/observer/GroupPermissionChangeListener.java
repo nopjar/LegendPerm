@@ -4,11 +4,11 @@ import net.playlegend.LegendPerm;
 import net.playlegend.domain.Group;
 import net.playlegend.misc.Subscriber;
 
-public class GroupListener implements Subscriber<Group, Group.Operation> {
+public class GroupPermissionChangeListener implements Subscriber<Group, Group.Operation> {
 
     private final LegendPerm plugin;
 
-    public GroupListener(LegendPerm plugin) {
+    public GroupPermissionChangeListener(LegendPerm plugin) {
         this.plugin = plugin;
     }
 

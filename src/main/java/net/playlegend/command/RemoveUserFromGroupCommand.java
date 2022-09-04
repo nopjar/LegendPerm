@@ -63,8 +63,7 @@ class RemoveUserFromGroupCommand implements Command<Object> {
             //  if time is given, we need to check if group is temporary
             if (time == null) {
                 userRepository.removeUserFromGroup(user.getUuid(), group.getName());
-                cacheService.get(UserCache.class)
-                        .refresh(user.getUuid());
+                user.removeGroup(group);
                 sender.sendMessage("User " + user.getName() + " removed from Group " + group.getName() + ".");
                 return 0;
             }
@@ -81,8 +80,7 @@ class RemoveUserFromGroupCommand implements Command<Object> {
             LocalDateTime newValidUntilDT = validUntilDT.minus(seconds, ChronoUnit.SECONDS);
             if (newValidUntilDT.isBefore(now)) {
                 userRepository.removeUserFromGroup(user.getUuid(), group.getName());
-                cacheService.get(UserCache.class)
-                        .refresh(user.getUuid());
+                user.removeGroup(group);
                 sender.sendMessage("User " + user.getName() + " removed from Group " + group.getName() + ".");
                 return 0;
             }
@@ -90,7 +88,7 @@ class RemoveUserFromGroupCommand implements Command<Object> {
 
             // save to database
             userRepository.addUserToGroup(user.getUuid(), group.getName(), validUntil);
-            user.removeGroup(group);
+            user.updateValidUntil(group, validUntil);
             sender.sendMessage(user.getName() + " grouptime reduced to " + TimeParser.epochSecondsToInline(validUntil) + ".");
         } catch (SQLException | ExecutionException e) {
             e.printStackTrace();
