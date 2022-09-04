@@ -12,7 +12,6 @@ public class User extends Publisher<User.Operation, User> {
     private Map<Group, Long> groups;
 
     public User(UUID uuid, String name, Map<Group, Long> groups) {
-        super(Operation.GROUP_CHANGE);
         this.uuid = uuid;
         this.name = name;
         this.groups = groups;
@@ -34,29 +33,38 @@ public class User extends Publisher<User.Operation, User> {
     }
 
     public void addGroup(Group group, long validUntil) {
-        if (this.groups.put(group, validUntil) == null) {
-            this.notifySubscribers(Operation.GROUP_CHANGE, this);
+        Long prev = this.groups.get(group);
+        if (prev == null) {
+            this.groups.put(group, validUntil);
+            this.notifySubscribers((validUntil == 0 ? Operation.GROUP_ADD : Operation.GROUP_ADD_TEMPORARY), this);
+        } else {
+            this.updateValidUntil(group, validUntil);
         }
     }
 
     public void updateValidUntil(Group group, long validUntil) {
-        if (this.groups.replace(group, validUntil) == null) {
-            this.notifySubscribers(Operation.GROUP_CHANGE, this);
+        Long prev = this.groups.get(group);
+        // there is nothing like from temporary to permanent!
+        if (prev != 0 && validUntil == 0) {
+            this.groups.replace(group, validUntil);
+            this.notifySubscribers(Operation.GROUP_CHANGE_TO_PERMANENT, this);
+        } else if (prev < validUntil) {
+            this.groups.replace(group, validUntil);
+            this.notifySubscribers(Operation.GROUP_EXPIRATION_EXTENDED, this);
+        } else if (prev > validUntil) {
+            this.groups.replace(group, validUntil);
+            this.notifySubscribers(Operation.GROUP_EXPIRATION_REDUCED, this);
         }
     }
 
     public void removeGroup(Group group) {
-        if (this.groups.remove(group) != null)
-            this.notifySubscribers(Operation.GROUP_CHANGE, this);
+        Long prev = this.groups.remove(group);
+        if (prev == null) return;
+        this.notifySubscribers((prev == 0 ? Operation.GROUP_REMOVE : Operation.GROUP_REMOVE_TEMPORARY), this);
     }
 
     public ImmutableMap<Group, Long> getGroups() {
         return ImmutableMap.copyOf(groups);
-    }
-
-    public void setGroups(Map<Group, Long> groups) {
-        this.groups = groups;
-        this.notifySubscribers(Operation.GROUP_CHANGE, this);
     }
 
     public boolean hasGroup(Group group) {
@@ -105,7 +113,13 @@ public class User extends Publisher<User.Operation, User> {
     }
 
     public enum Operation {
-        GROUP_CHANGE,
+        GROUP_ADD,
+        GROUP_REMOVE,
+        GROUP_ADD_TEMPORARY,
+        GROUP_CHANGE_TO_PERMANENT,
+        GROUP_REMOVE_TEMPORARY,
+        GROUP_EXPIRATION_EXTENDED,
+        GROUP_EXPIRATION_REDUCED,
         ;
     }
 

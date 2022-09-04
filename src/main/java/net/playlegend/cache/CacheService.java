@@ -1,16 +1,11 @@
 package net.playlegend.cache;
 
 import java.sql.SQLException;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import net.playlegend.LegendPerm;
-import net.playlegend.domain.Group;
 import net.playlegend.exception.ServiceInitializeException;
 import net.playlegend.exception.ServiceShutdownException;
-import net.playlegend.repository.GroupRepository;
-import net.playlegend.repository.RepositoryService;
 import net.playlegend.service.Service;
 import org.bukkit.Bukkit;
 
@@ -25,6 +20,7 @@ public class CacheService extends Service {
         this.caches.put(UserCache.class, new UserCache(plugin));
         this.caches.put(GroupCache.class, new GroupCache(plugin));
         this.caches.put(PermissionCache.class, new PermissionCache(plugin));
+        this.caches.put(SignCache.class, new SignCache(plugin));
     }
 
     @Override
@@ -36,13 +32,7 @@ public class CacheService extends Service {
 
         // fetch all groups and put them into the cache
         try {
-            List<Group> groups = plugin.getServiceRegistry().get(RepositoryService.class)
-                    .get(GroupRepository.class)
-                    .selectAllGroups();
-
-            GroupCache groupCache = get(GroupCache.class);
-            groups.forEach(g -> groupCache.add(g.getName(), Optional.of(g)));
-            System.out.println("Preloaded cache: " + groupCache.getAsMap());
+            get(GroupCache.class).preload();
         } catch (SQLException e) {
             throw new ServiceInitializeException(e);
         }

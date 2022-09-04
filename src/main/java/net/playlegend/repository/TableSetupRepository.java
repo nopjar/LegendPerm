@@ -1,6 +1,5 @@
 package net.playlegend.repository;
 
-import com.zaxxer.hikari.HikariConfig;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -68,12 +67,15 @@ class TableSetupRepository extends Repository {
             CREATE TABLE IF NOT EXISTS `sign` (
             	`id` INT(11) NOT NULL AUTO_INCREMENT,
             	`user_id` VARCHAR(36) NULL DEFAULT NULL COLLATE 'utf8mb4_general_ci',
+            	`group` VARCHAR(50) NULL DEFAULT NULL COLLATE 'utf8mb4_general_ci',
             	`world` VARCHAR(50) NOT NULL COLLATE 'utf8mb4_general_ci',
             	`x` INT(11) NOT NULL,
             	`y` INT(11) NOT NULL,
             	`z` INT(11) NOT NULL,
             	PRIMARY KEY (`id`) USING BTREE,
             	INDEX `owner` (`user_id`) USING BTREE,
+            	INDEX `FK_sign_group` (`group`) USING BTREE,
+            	CONSTRAINT `FK_sign_group` FOREIGN KEY (`group`) REFERENCES `group` (`name`) ON UPDATE NO ACTION ON DELETE SET NULL,
             	CONSTRAINT `FK_sign_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`uuid`) ON UPDATE NO ACTION ON DELETE SET NULL
             )
             """;

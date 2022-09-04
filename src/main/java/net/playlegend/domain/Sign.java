@@ -1,24 +1,38 @@
 package net.playlegend.domain;
 
-import com.google.common.base.Objects;
+import java.util.Objects;
 import java.util.UUID;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.jetbrains.annotations.Nullable;
 
-public class Sign {
+public final class Sign {
 
     private final int id;
     private final UUID owner;
-    private final String world;
+    private final String worldName;
     private final int x;
     private final int y;
     private final int z;
+    private String groupName;
 
-    public Sign(int id, UUID owner, String world, int x, int y, int z) {
+    public Sign(int id, UUID owner, String groupName, String worldName, int x, int y, int z) {
         this.id = id;
         this.owner = owner;
-        this.world = world;
+        this.groupName = groupName;
+        this.worldName = worldName;
         this.x = x;
         this.y = y;
         this.z = z;
+    }
+
+    @Nullable
+    public Location getAsBukkitLocation() {
+        World world = Bukkit.getWorld(this.worldName);
+        if (world == null) return null;
+
+        return new Location(world, x, y, z);
     }
 
     public int getId() {
@@ -29,8 +43,16 @@ public class Sign {
         return owner;
     }
 
-    public String getWorld() {
-        return world;
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
+    }
+
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public String getWorldName() {
+        return worldName;
     }
 
     public int getX() {
@@ -46,32 +68,35 @@ public class Sign {
     }
 
     @Override
-    public String toString() {
-        return "Sign{" +
-               "id=" + id +
-               ", owner=" + owner +
-               ", world='" + world + '\'' +
-               ", x=" + x +
-               ", y=" + y +
-               ", z=" + z +
-               '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Sign sign)) return false;
-        return id == sign.id &&
-               x == sign.x &&
-               y == sign.y &&
-               z == sign.z &&
-               Objects.equal(owner, sign.owner) &&
-               Objects.equal(world, sign.world);
+    public boolean equals(Object obj) {
+        if (obj == this) return true;
+        if (obj == null || obj.getClass() != this.getClass()) return false;
+        var that = (Sign) obj;
+        return this.id == that.id &&
+               Objects.equals(this.owner, that.owner) &&
+               Objects.equals(this.groupName, that.groupName) &&
+               Objects.equals(this.worldName, that.worldName) &&
+               this.x == that.x &&
+               this.y == that.y &&
+               this.z == that.z;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(id, owner, world, x, y, z);
+        return Objects.hash(id, owner, groupName, worldName, x, y, z);
     }
+
+    @Override
+    public String toString() {
+        return "Sign[" +
+               "id=" + id + ", " +
+               "owner=" + owner + ", " +
+               "groupName=" + groupName + ", " +
+               "worldName=" + worldName + ", " +
+               "x=" + x + ", " +
+               "y=" + y + ", " +
+               "z=" + z + ']';
+    }
+
 
 }

@@ -16,7 +16,8 @@ import net.playlegend.cache.GroupCache;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.User;
 import net.playlegend.misc.GroupWeightComparator;
-import net.playlegend.permission.UserListener;
+import net.playlegend.permission.UserPermissionListener;
+import net.playlegend.sign.UserSignListener;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -126,7 +127,8 @@ public class UserRepository extends Repository {
             } while (set.next());
 
             User user = new User(uuid, userName, groups);
-            user.subscribe(new UserListener(plugin), User.Operation.GROUP_CHANGE);
+            user.subscribe(new UserPermissionListener(plugin));
+            user.subscribe(new UserSignListener(plugin));
             return user;
         }
     }

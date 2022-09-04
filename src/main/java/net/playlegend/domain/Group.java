@@ -7,33 +7,18 @@ import org.jetbrains.annotations.NotNull;
 
 public class Group extends Publisher<Group.Operation, Group> {
 
-    private String name;
+    private final String name;
     private int weight;
     private String prefix;
     private String suffix;
-    private Set<Permission> permissions;
+    private final Set<Permission> permissions;
 
     public Group(String name, int weight, String prefix, String suffix, Set<Permission> permissions) {
-        super(Operation.values());
         this.name = name;
         this.weight = weight;
         this.prefix = prefix;
         this.suffix = suffix;
         this.permissions = permissions;
-    }
-
-    public boolean hasPermission(@NotNull Permission permission) {
-        return hasPermission(permission.getNode());
-    }
-
-    public boolean hasPermission(@NotNull String permission) {
-        for (Permission perm : this.permissions) {
-            if (perm.getNode().equals(permission)) {
-                return perm.getMode();
-            }
-        }
-
-        return false;
     }
 
     public void changeProperty(@NotNull Property property, String value) {
@@ -47,11 +32,6 @@ public class Group extends Publisher<Group.Operation, Group> {
 
     public String getName() {
         return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-        this.notifySubscribers(Operation.PROPERTY_CHANGE, this);
     }
 
     public int getWeight() {
@@ -69,7 +49,7 @@ public class Group extends Publisher<Group.Operation, Group> {
 
     public void setPrefix(String prefix) {
         this.prefix = prefix;
-        this.notifySubscribers(Operation.PROPERTY_CHANGE, this);
+        this.notifySubscribers(Operation.PREFIX_CHANGE, this);
     }
 
     public String getSuffix() {
@@ -78,7 +58,7 @@ public class Group extends Publisher<Group.Operation, Group> {
 
     public void setSuffix(String suffix) {
         this.suffix = suffix;
-        this.notifySubscribers(Operation.PROPERTY_CHANGE, this);
+        this.notifySubscribers(Operation.SUFFIX_CHANGE, this);
     }
 
     public Set<Permission> getPermissions() {
@@ -122,12 +102,6 @@ public class Group extends Publisher<Group.Operation, Group> {
     }
 
     @Override
-    protected void finalize() throws Throwable {
-        System.out.println(name + " collected!");
-        super.finalize();
-    }
-
-    @Override
     public String toString() {
         return "Group{" +
                "name='" + name + '\'' +
@@ -168,10 +142,11 @@ public class Group extends Publisher<Group.Operation, Group> {
     }
 
     public enum Operation {
-        PROPERTY_CHANGE,
+        PREFIX_CHANGE,
+        SUFFIX_CHANGE,
         PERMISSION_CHANGE,
         WEIGHT_CHANGE,
-        DELETE
+        DELETE,
         ;
     }
 

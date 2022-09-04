@@ -15,6 +15,7 @@ public class ListenerService extends Service {
     @Override
     public void initialize() throws ServiceInitializeException {
         Bukkit.getPluginManager().registerEvents(new PlayerListener(plugin), plugin);
+        Bukkit.getPluginManager().registerEvents(new SignListener(plugin), plugin);
     }
 
     @Override

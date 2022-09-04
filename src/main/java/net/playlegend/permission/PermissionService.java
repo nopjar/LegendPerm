@@ -92,6 +92,34 @@ public class PermissionService extends Service {
         }
     }
 
+    public void processTemporaryGroupChange(User user) {
+        boolean containsTemporary = false;
+        for (Long value : user.getGroups().values()) {
+            if (value != 0) {
+                containsTemporary = true;
+                break;
+            }
+        }
+        boolean runsTask = this.taskIds.containsKey(user.getUuid());
+
+        if (containsTemporary && !this.taskIds.containsKey(user.getUuid())) {
+            UserCache userCache = plugin.getServiceRegistry().get(CacheService.class)
+                    .get(UserCache.class);
+            UserRepository userRepository = plugin.getServiceRegistry().get(RepositoryService.class)
+                    .get(UserRepository.class);
+
+            int taskId = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin,
+                    new PermissionCheckingThread(user.getUuid(), userCache, userRepository),
+                    20L,
+                    20L).getTaskId();
+
+            this.taskIds.put(user.getUuid(), taskId);
+        } else if (!containsTemporary && runsTask) {
+            Bukkit.getScheduler().cancelTask(this.taskIds.get(user.getUuid()));
+            this.taskIds.remove(user.getUuid());
+        }
+    }
+
     public void removeGroupFromAllOnlineUsers(Group group) {
         for (Player player : Bukkit.getOnlinePlayers()) {
             // use try-catch here as we don't want to interrupt looping

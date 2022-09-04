@@ -13,6 +13,7 @@ import net.playlegend.LegendPerm;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.Permission;
 import net.playlegend.permission.GroupPermissionChangeListener;
+import net.playlegend.sign.GroupSignListener;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -181,7 +182,8 @@ public class GroupRepository extends Repository {
 
     private Group getGroup(String groupName, int groupWeight, String groupPrefix, String groupSuffix, Set<Permission> permissions) {
         Group group = new Group(groupName, groupWeight, groupPrefix, groupSuffix, permissions);
-        group.subscribe(new GroupPermissionChangeListener(plugin), Group.Operation.WEIGHT_CHANGE, Group.Operation.PERMISSION_CHANGE, Group.Operation.DELETE);
+        group.subscribe(new GroupPermissionChangeListener(plugin));
+        group.subscribe(new GroupSignListener(plugin));
         return group;
     }
 

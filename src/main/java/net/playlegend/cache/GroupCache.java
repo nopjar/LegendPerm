@@ -4,6 +4,8 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
+import java.sql.SQLException;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -70,16 +72,12 @@ public class GroupCache extends Cache<String, Optional<Group>> {
         this.cache.cleanUp();
     }
 
-    void add(String key, Optional<Group> value) {
-        this.cache.put(key, value);
-    }
+    void preload() throws SQLException {
+        List<Group> groups = plugin.getServiceRegistry().get(RepositoryService.class)
+                .get(GroupRepository.class)
+                .selectAllGroups();
 
-    void addAll(Map<String, Optional<Group>> map) {
-        this.cache.putAll(map);
-    }
-
-    ConcurrentMap<String, Optional<Group>> getAsMap() {
-        return this.cache.asMap();
+        groups.forEach(g -> cache.put(g.getName(), Optional.of(g)));
     }
 
 }

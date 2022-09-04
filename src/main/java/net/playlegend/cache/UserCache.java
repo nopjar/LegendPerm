@@ -5,7 +5,6 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import java.sql.SQLException;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -100,10 +99,6 @@ public class UserCache extends Cache<UUID, Optional<User>> {
                 .removeIf(e -> e.getValue().isEmpty());
 
         this.cache.cleanUp();
-    }
-
-    public Collection<Optional<User>> getAllValues() {
-        return this.cache.asMap().values();
     }
 
 }
