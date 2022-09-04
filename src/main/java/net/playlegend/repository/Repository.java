@@ -1,20 +1,15 @@
 package net.playlegend.repository;
 
-import com.zaxxer.hikari.HikariConfig;
 import net.playlegend.LegendPerm;
 
 abstract class Repository {
 
     protected final LegendPerm plugin;
-    private final DataSource dataSource;
+    protected final DataSource dataSource;
 
-    public Repository(LegendPerm plugin, HikariConfig config) {
+    public Repository(LegendPerm plugin, DataSource dataSource) {
         this.plugin = plugin;
-        this.dataSource = new DataSource(config);
-    }
-
-    DataSource getDataSource() {
-        return this.dataSource;
+        this.dataSource = dataSource;
     }
 
 }

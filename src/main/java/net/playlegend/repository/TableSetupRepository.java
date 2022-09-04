@@ -63,10 +63,25 @@ class TableSetupRepository extends Repository {
             )
             """;
 
+    @Language("MariaDB")
+    private static final String CREATE_SIGN_TABLE = """
+            CREATE TABLE IF NOT EXISTS `sign` (
+            	`id` INT(11) NOT NULL AUTO_INCREMENT,
+            	`user_id` VARCHAR(36) NULL DEFAULT NULL COLLATE 'utf8mb4_general_ci',
+            	`world` VARCHAR(50) NOT NULL COLLATE 'utf8mb4_general_ci',
+            	`x` INT(11) NOT NULL,
+            	`y` INT(11) NOT NULL,
+            	`z` INT(11) NOT NULL,
+            	PRIMARY KEY (`id`) USING BTREE,
+            	INDEX `owner` (`user_id`) USING BTREE,
+            	CONSTRAINT `FK_sign_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`uuid`) ON UPDATE NO ACTION ON DELETE SET NULL
+            )
+            """;
+
     private final List<String> queries;
 
-    public TableSetupRepository(LegendPerm plugin, HikariConfig config) {
-        super(plugin, config);
+    public TableSetupRepository(LegendPerm plugin, DataSource dataSource) {
+        super(plugin, dataSource);
 
         this.queries = new ArrayList<>();
         this.queries.add(CREATE_GROUP_TABLE);
@@ -74,10 +89,11 @@ class TableSetupRepository extends Repository {
         this.queries.add(CREATE_GROUP_PERMISSIONS_TABLE);
         this.queries.add(CREATE_USER_TABLE);
         this.queries.add(CREATE_USERS_GROUPS_TABLE);
+        this.queries.add(CREATE_SIGN_TABLE);
     }
 
     public void setupTables() throws SQLException {
-        try (Connection connection = getDataSource().getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             for (String query : this.queries)
                 try (PreparedStatement statement = connection.prepareStatement(query)) {

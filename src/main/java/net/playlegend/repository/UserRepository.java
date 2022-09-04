@@ -62,13 +62,13 @@ public class UserRepository extends Repository {
             ON DUPLICATE KEY UPDATE name = ?;
             """;
 
-    public UserRepository(LegendPerm plugin, HikariConfig config) {
-        super(plugin, config);
+    public UserRepository(LegendPerm plugin, DataSource dataSource) {
+        super(plugin, dataSource);
     }
 
     @Nullable
     public User selectUserByUUID(@NotNull UUID uuid) throws SQLException, ExecutionException {
-        try (Connection connection = getDataSource().getConnection();
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(SELECT_USER_BY_UUID)) {
 
             statement.setString(1, uuid.toString());
@@ -79,7 +79,7 @@ public class UserRepository extends Repository {
 
     @Nullable
     public User selectUserByName(@NotNull String name) throws SQLException, ExecutionException {
-        try (Connection connection = getDataSource().getConnection();
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(SELECT_USER_BY_NAME)) {
 
             statement.setString(1, name);
@@ -125,7 +125,7 @@ public class UserRepository extends Repository {
     }
 
     public void addUserToGroup(@NotNull UUID uuid, String groupName, long validUntil) throws SQLException {
-        try (Connection connection = getDataSource().getConnection();
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(GRANT_USER_AUTHORITY)) {
 
             statement.setString(1, uuid.toString());
@@ -138,7 +138,7 @@ public class UserRepository extends Repository {
     }
 
     public void removeUserFromGroup(@NotNull UUID uuid, String groupName) throws SQLException {
-        try (Connection connection = getDataSource().getConnection();
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(REVOKE_USER_AUTHORITY)) {
 
             statement.setString(1, uuid.toString());
@@ -153,7 +153,7 @@ public class UserRepository extends Repository {
     }
 
     public void updateUser(UUID uuid, String name) throws SQLException {
-        try (Connection connection = getDataSource().getConnection();
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(UPDATE_USER)) {
 
             statement.setString(1, uuid.toString());

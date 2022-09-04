@@ -1,6 +1,5 @@
 package net.playlegend.repository;
 
-import com.zaxxer.hikari.HikariConfig;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,23 +11,24 @@ import net.playlegend.service.Service;
 public class RepositoryService extends Service {
 
     private final Map<Class<? extends Repository>, Repository> repositories;
+    private final DataSource dataSource;
 
     public RepositoryService(LegendPerm plugin, Config config) {
         super(plugin);
         this.repositories = new ConcurrentHashMap<>();
 
         // we do not put TableSetupRepository in here on purpose as it should not be used outside
-        HikariConfig hikariConfig = HikariOperations.loadHikariConfig(config);
-        this.repositories.put(GroupRepository.class, new GroupRepository(plugin, hikariConfig));
-        this.repositories.put(UserRepository.class, new UserRepository(plugin, hikariConfig));
+        this.dataSource = new DataSource(HikariOperations.loadHikariConfig(config));
+        this.repositories.put(GroupRepository.class, new GroupRepository(plugin, dataSource));
+        this.repositories.put(UserRepository.class, new UserRepository(plugin, dataSource));
+        this.repositories.put(SignRepository.class, new SignRepository(plugin, dataSource));
     }
 
     @Override
     public void initialize() throws ServiceInitializeException {
-        TableSetupRepository tableSetupRepository = new TableSetupRepository(plugin, HikariOperations.getHikariConfig());
+        TableSetupRepository tableSetupRepository = new TableSetupRepository(plugin, this.dataSource);
         try {
             tableSetupRepository.setupTables();
-            tableSetupRepository.getDataSource().shutdown();
         } catch (SQLException e) {
             throw new ServiceInitializeException(e);
         }
@@ -36,9 +36,7 @@ public class RepositoryService extends Service {
 
     @Override
     public void shutdown() {
-        for (Repository repository : this.repositories.values()) {
-            repository.getDataSource().shutdown();
-        }
+        this.dataSource.shutdown();
     }
 
     public <T extends Repository> T get(Class<T> clazz) {

@@ -75,14 +75,14 @@ public class GroupRepository extends Repository {
             ORDER BY `name`;
             """;
 
-    public GroupRepository(LegendPerm plugin, HikariConfig config) {
-        super(plugin, config);
+    public GroupRepository(LegendPerm plugin, DataSource dataSource) {
+        super(plugin, dataSource);
     }
 
     // no group returned on purpose
     //  reason: we do not want to clutter up things with subscribers and the cache
     public void createGroup(String name, int weight, String prefix, String suffix) throws SQLException {
-        try (Connection connection = getDataSource().getConnection();
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(CREATE_GROUP)) {
 
             statement.setString(1, name);
@@ -96,7 +96,7 @@ public class GroupRepository extends Repository {
 
     @Nullable
     public Group selectGroupByName(String name) throws SQLException {
-        try (Connection connection = getDataSource().getConnection();
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(SELECT_GROUP_BY_NAME)) {
 
             statement.setString(1, name);
@@ -136,7 +136,7 @@ public class GroupRepository extends Repository {
     }
 
     public List<Group> selectAllGroups() throws SQLException {
-        try (Connection connection = getDataSource().getConnection();
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(SELECT_ALL_GROUPS)) {
 
             List<Group> list = new ArrayList<>();
@@ -186,7 +186,7 @@ public class GroupRepository extends Repository {
     }
 
     public List<String> selectAllGroupNames() throws SQLException {
-        try (Connection connection = getDataSource().getConnection();
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(SELECT_ALL_GROUP_NAMES)) {
 
             List<String> list = new ArrayList<>();
@@ -201,7 +201,7 @@ public class GroupRepository extends Repository {
     }
 
     public void updateGroup(@NotNull Group group) throws SQLException {
-        try (Connection connection = getDataSource().getConnection();
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(UPDATE_GROUP)) {
 
             statement.setInt(1, group.getWeight());
@@ -214,7 +214,7 @@ public class GroupRepository extends Repository {
     }
 
     public void deleteGroup(@NotNull Group group) throws SQLException {
-        try (Connection connection = getDataSource().getConnection();
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(DELETE_GROUP)) {
 
             statement.setString(1, group.getName());
@@ -224,7 +224,7 @@ public class GroupRepository extends Repository {
     }
 
     public void updatePermissionInGroup(@NotNull Group group, Permission permission) throws SQLException {
-        try (Connection connection = getDataSource().getConnection();
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(ADD_PERM_TO_GROUP)) {
 
             statement.setString(1, group.getName());
@@ -237,7 +237,7 @@ public class GroupRepository extends Repository {
     }
 
     public void revokePermissionFromGroup(@NotNull Group group, String permission) throws SQLException {
-        try (Connection connection = getDataSource().getConnection();
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(REVOKE_PERM_FROM_GROUP)) {
 
             statement.setString(1, group.getName());
