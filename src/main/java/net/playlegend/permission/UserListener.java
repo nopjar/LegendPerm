@@ -1,4 +1,4 @@
-package net.playlegend.observer;
+package net.playlegend.permission;
 
 import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;

@@ -1,18 +1,18 @@
 package net.playlegend.repository;
 
-import com.zaxxer.hikari.HikariConfig;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import net.playlegend.LegendPerm;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.Permission;
-import net.playlegend.observer.GroupPermissionChangeListener;
+import net.playlegend.permission.GroupPermissionChangeListener;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -110,7 +110,7 @@ public class GroupRepository extends Repository {
                 int groupWeight = 0;
                 String groupPrefix = "";
                 String groupSuffix = "";
-                Set<Permission> permissions = new HashSet<>();
+                Set<Permission> permissions = Collections.synchronizedSet(new HashSet<>());
                 boolean firstRun = true;
                 // using do-while, so we won't miss the first row in set
                 do {
@@ -152,7 +152,7 @@ public class GroupRepository extends Repository {
                     if (!groupName.equals(newName) || firstRun) {
                         if (!firstRun) {
                             // add previous data to list
-                            list.add(getGroup(groupName, groupWeight, groupPrefix, groupSuffix, new HashSet<>(permissions)));
+                            list.add(getGroup(groupName, groupWeight, groupPrefix, groupSuffix, Collections.synchronizedSet(new HashSet<>(permissions))));
                             permissions.clear();
                         } else {
                             firstRun = false;
@@ -173,7 +173,7 @@ public class GroupRepository extends Repository {
                 }
 
                 // adding last collected group data
-                list.add(getGroup(groupName, groupWeight, groupPrefix, groupSuffix, new HashSet<>(permissions)));
+                list.add(getGroup(groupName, groupWeight, groupPrefix, groupSuffix, Collections.synchronizedSet(new HashSet<>(permissions))));
             }
             return list;
         }

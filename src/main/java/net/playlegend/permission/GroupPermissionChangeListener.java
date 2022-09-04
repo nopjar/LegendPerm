@@ -1,4 +1,4 @@
-package net.playlegend.observer;
+package net.playlegend.permission;
 
 import net.playlegend.LegendPerm;
 import net.playlegend.domain.Group;
@@ -22,7 +22,7 @@ public class GroupPermissionChangeListener implements Subscriber<Group, Group.Op
                 break;
             case DELETE:
                 plugin.getServiceRegistry().get(PermissionService.class)
-                        .removeGroup(data);
+                        .removeGroupFromAllOnlineUsers(data);
             case PROPERTY_CHANGE:
                 break;
         }

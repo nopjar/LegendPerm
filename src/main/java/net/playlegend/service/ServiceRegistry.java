@@ -8,7 +8,7 @@ import net.playlegend.command.CommandService;
 import net.playlegend.configuration.Config;
 import net.playlegend.exception.ServiceInitializeException;
 import net.playlegend.listener.ListenerService;
-import net.playlegend.observer.PermissionService;
+import net.playlegend.permission.PermissionService;
 import net.playlegend.repository.RepositoryService;
 
 public class ServiceRegistry {

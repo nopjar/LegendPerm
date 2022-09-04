@@ -1,6 +1,5 @@
 package net.playlegend.listener;
 
-import com.google.common.collect.ImmutableSet;
 import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import java.sql.SQLException;
@@ -13,9 +12,8 @@ import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
 import net.playlegend.cache.PermissionCache;
 import net.playlegend.cache.UserCache;
-import net.playlegend.domain.Group;
-import net.playlegend.domain.Permission;
 import net.playlegend.domain.User;
+import net.playlegend.permission.PermissionService;
 import net.playlegend.repository.RepositoryService;
 import net.playlegend.repository.UserRepository;
 import org.bukkit.Bukkit;
@@ -24,7 +22,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.permissions.PermissionAttachment;
 import org.jetbrains.annotations.NotNull;
 
 public class PlayerListener implements Listener {
@@ -63,22 +60,8 @@ public class PlayerListener implements Listener {
                             .orElseThrow();
                 }
 
-                // fetch permissions
-                ImmutableSet<Group> groups = user.getGroups().keySet();
-
-                // apply permissions
-                PermissionAttachment attachment = plugin.getServiceRegistry().get(CacheService.class)
-                        .get(PermissionCache.class)
-                        .get(player.getUniqueId());
-                for (Group group : groups) {
-                    for (Permission permission : group.getPermissions()) {
-                        if (attachment.getPermissions().containsKey(permission.getNode()))
-                            continue;
-
-                        attachment.setPermission(permission.getNode(), permission.getMode());
-                    }
-                }
-                player.recalculatePermissions();
+                plugin.getServiceRegistry().get(PermissionService.class)
+                        .processPlayerJoin(player, user.getGroups());
 
                 Bukkit.broadcast(Component.text("[" + user.getMainGroup().getPrefix() + "§r] §e" + player.getName() + " joined!"));
             } catch (SQLException | ExecutionException e) {
@@ -98,14 +81,11 @@ public class PlayerListener implements Listener {
             try {
                 CacheService cacheService = plugin.getServiceRegistry().get(CacheService.class);
                 UserCache userCache = cacheService.get(UserCache.class);
-
-                PermissionCache permissionCache = cacheService.get(PermissionCache.class);
-                permissionCache.get(uuid)
-                        .remove();
-                permissionCache.release(uuid);
-
                 User user = userCache.get(uuid)
                         .orElseThrow();
+
+                plugin.getServiceRegistry().get(PermissionService.class)
+                        .processPlayerLeave(uuid);
 
                 Bukkit.broadcast(Component.text("[" + user.getMainGroup().getPrefix() + "§r] §e" + name + " left!"));
                 userCache.release(uuid);

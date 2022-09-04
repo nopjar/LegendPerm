@@ -1,9 +1,11 @@
-package net.playlegend.observer;
+package net.playlegend.permission;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
@@ -14,15 +16,21 @@ import net.playlegend.domain.Permission;
 import net.playlegend.domain.User;
 import net.playlegend.exception.ServiceInitializeException;
 import net.playlegend.exception.ServiceShutdownException;
+import net.playlegend.repository.RepositoryService;
+import net.playlegend.repository.UserRepository;
 import net.playlegend.service.Service;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.permissions.PermissionAttachment;
+import org.jetbrains.annotations.NotNull;
 
 public class PermissionService extends Service {
 
+    private final Map<UUID, Integer> taskIds;
+
     public PermissionService(LegendPerm plugin) {
         super(plugin);
+        this.taskIds = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -35,7 +43,56 @@ public class PermissionService extends Service {
 
     }
 
-    public void removeGroup(Group group) {
+    public void processPlayerJoin(@NotNull Player player, @NotNull Map<Group, Long> groups) throws ExecutionException {
+        PermissionAttachment attachment = plugin.getServiceRegistry().get(CacheService.class)
+                .get(PermissionCache.class)
+                .get(player.getUniqueId());
+
+        boolean hasTimedGroups = false;
+        for (Map.Entry<Group, Long> entry : groups.entrySet()) {
+            if (!hasTimedGroups)
+                hasTimedGroups = entry.getValue() != 0;
+
+            for (Permission permission : entry.getKey().getPermissions()) {
+                if (attachment.getPermissions().containsKey(permission.getNode()))
+                    continue;
+
+                attachment.setPermission(permission.getNode(), permission.getMode());
+            }
+        }
+        player.recalculatePermissions();
+
+        if (hasTimedGroups) {
+            UserCache userCache = plugin.getServiceRegistry().get(CacheService.class)
+                    .get(UserCache.class);
+            UserRepository userRepository = plugin.getServiceRegistry().get(RepositoryService.class)
+                    .get(UserRepository.class);
+
+            int taskId = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin,
+                    new PermissionCheckingThread(player.getUniqueId(), userCache, userRepository),
+                    20L,
+                    20L
+            ).getTaskId();
+
+            this.taskIds.put(player.getUniqueId(), taskId);
+        }
+    }
+
+    public void processPlayerLeave(@NotNull UUID uuid) throws ExecutionException {
+        PermissionCache permissionCache = plugin.getServiceRegistry().get(CacheService.class)
+                .get(PermissionCache.class);
+
+        permissionCache.get(uuid).remove();
+        permissionCache.release(uuid);
+
+        Integer taskId = this.taskIds.get(uuid);
+        if (taskId != null) {
+            Bukkit.getScheduler().cancelTask(taskId);
+            this.taskIds.remove(uuid);
+        }
+    }
+
+    public void removeGroupFromAllOnlineUsers(Group group) {
         for (Player player : Bukkit.getOnlinePlayers()) {
             // use try-catch here as we don't want to interrupt looping
             try {

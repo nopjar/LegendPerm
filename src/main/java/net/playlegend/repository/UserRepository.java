@@ -1,10 +1,11 @@
 package net.playlegend.repository;
 
-import com.zaxxer.hikari.HikariConfig;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.ZonedDateTime;
+import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -15,7 +16,7 @@ import net.playlegend.cache.GroupCache;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.User;
 import net.playlegend.misc.GroupWeightComparator;
-import net.playlegend.observer.UserListener;
+import net.playlegend.permission.UserListener;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -96,10 +97,11 @@ public class UserRepository extends Repository {
 
             UUID uuid = null;
             String userName = "";
-            Map<Group, Long> groups = new TreeMap<>(new GroupWeightComparator());
+            Map<Group, Long> groups = Collections.synchronizedMap(new TreeMap<>(new GroupWeightComparator()));
             boolean firstRun = true;
             GroupCache groupCache = plugin.getServiceRegistry().get(CacheService.class)
                     .get(GroupCache.class);
+            long epochSeconds = ZonedDateTime.now().toEpochSecond();
             // using do-while, so we won't miss the first row in set
             do {
                 // load overall information which change not (typically user information)
@@ -113,6 +115,11 @@ public class UserRepository extends Repository {
                 String groupName = set.getString("group_name");
                 if (groupName == null) break; // break out of loop as user does not have any groups!
                 long validUntil = set.getLong("valid_until");
+                // check if user still has the group, remove it if expired
+                if (validUntil != 0 && validUntil < epochSeconds) {
+                    removeUserFromGroup(uuid, groupName);
+                    continue;
+                }
                 Group group = groupCache.get(groupName)
                         .orElseThrow();
                 groups.put(group, validUntil);
