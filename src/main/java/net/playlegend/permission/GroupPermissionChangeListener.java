@@ -15,16 +15,10 @@ public class GroupPermissionChangeListener implements Subscriber<Group, Group.Op
     @Override
     public void update(Group.Operation type, Group data) {
         switch (type) {
-            case WEIGHT_CHANGE:
-            case PERMISSION_CHANGE:
-                plugin.getServiceRegistry().get(PermissionService.class)
-                        .updateGroup(data);
-                break;
-            case DELETE:
-                plugin.getServiceRegistry().get(PermissionService.class)
-                        .removeGroupFromAllOnlineUsers(data);
-            case PROPERTY_CHANGE:
-                break;
+            case WEIGHT_CHANGE, PERMISSION_CHANGE -> plugin.getServiceRegistry().get(PermissionService.class)
+                    .updateGroup(data);
+            case DELETE -> plugin.getServiceRegistry().get(PermissionService.class)
+                    .removeGroupFromAllOnlineUsers(data);
         }
     }
 

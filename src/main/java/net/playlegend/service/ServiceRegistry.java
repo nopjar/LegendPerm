@@ -10,6 +10,7 @@ import net.playlegend.exception.ServiceInitializeException;
 import net.playlegend.listener.ListenerService;
 import net.playlegend.permission.PermissionService;
 import net.playlegend.repository.RepositoryService;
+import net.playlegend.sign.SignService;
 
 public class ServiceRegistry {
 
@@ -23,6 +24,7 @@ public class ServiceRegistry {
         this.services.put(CommandService.class, new CommandService(plugin));
         this.services.put(ListenerService.class, new ListenerService(plugin));
         this.services.put(PermissionService.class, new PermissionService(plugin));
+        this.services.put(SignService.class, new SignService(plugin));
     }
 
     public void start() throws ServiceInitializeException {

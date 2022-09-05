@@ -23,9 +23,9 @@ public class Group extends Publisher<Group.Operation, Group> {
 
     public void changeProperty(@NotNull Property property, String value) {
         switch (property) {
-            case WEIGHT -> weight = Integer.parseInt(value);
-            case PREFIX -> prefix = value;
-            case SUFFIX -> suffix = value;
+            case WEIGHT -> setWeight(Integer.parseInt(value));
+            case PREFIX -> setPrefix(value);
+            case SUFFIX -> setSuffix(value);
             default -> throw new IllegalArgumentException("Unknown property: " + property);
         }
     }

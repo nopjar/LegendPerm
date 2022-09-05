@@ -15,7 +15,7 @@ public class GroupSignListener implements Subscriber<Group, Group.Operation> {
 
     @Override
     public void update(Group.Operation type, Group data) {
-        if (type != Group.Operation.SUFFIX_CHANGE) return;
+        if (type != Group.Operation.PREFIX_CHANGE) return;
 
         try {
             plugin.getServiceRegistry().get(SignService.class)

@@ -12,6 +12,7 @@ import net.playlegend.exception.ServiceShutdownException;
 import net.playlegend.repository.RepositoryService;
 import net.playlegend.repository.SignRepository;
 import net.playlegend.service.Service;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.jetbrains.annotations.NotNull;
@@ -37,17 +38,25 @@ public class SignService extends Service {
                 .get(SignRepository.class);
         List<Sign> signs = signRepository.selectSignsByGroup(group.getName());
 
-        for (Sign sign : signs) {
-            Location location = sign.getAsBukkitLocation();
-            Block block = location.getBlock();
-            if (!(block instanceof org.bukkit.block.Sign blockSign)) {
-                signRepository.deleteSign(sign);
-                continue;
-            }
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            for (Sign sign : signs) {
+                Location location = sign.getAsBukkitLocation();
+                Block block = location.getBlock();
+                if (!(block.getState() instanceof org.bukkit.block.Sign blockSign)) {
+                    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                        try {
+                            signRepository.deleteSign(sign);
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                        }
+                    });
+                    continue;
+                }
 
-            blockSign.line(1, Component.text(group.getPrefix()));
-            // TODO: 04/09/2022 maybe add blockSign.update()
-        }
+                blockSign.line(1, Component.text(group.getPrefix()));
+                blockSign.update();
+            }
+        });
     }
 
     public void updateAllSignsForUser(@NotNull User user) throws SQLException {
@@ -62,14 +71,14 @@ public class SignService extends Service {
                 continue;
             }
             Block block = location.getBlock();
-            if (!(block instanceof org.bukkit.block.Sign blockSign)) {
+            if (!(block.getState() instanceof org.bukkit.block.Sign blockSign)) {
                 signRepository.deleteSign(sign);
                 continue;
             }
 
             blockSign.line(1, Component.text(user.getMainGroup().getPrefix()));
             blockSign.line(2, Component.text(user.getName()));
-            // TODO: 04/09/2022 maybe add blockSign.update()
+            blockSign.update();
         }
     }
 

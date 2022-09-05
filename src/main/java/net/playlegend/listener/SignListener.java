@@ -39,8 +39,10 @@ public class SignListener implements Listener {
                     .get(SignRepository.class)
                     .createSign(user, event.getBlock().getLocation());
 
-            event.line(1, Component.text(user.getName()));
-            event.line(2, Component.text(user.getMainGroup().getPrefix()));
+            event.line(0, Component.text(""));
+            event.line(1, Component.text(user.getMainGroup().getPrefix()));
+            event.line(2, Component.text(user.getName()));
+            event.line(3, Component.text(""));
         } catch (ExecutionException | SQLException e) {
             event.getPlayer().sendMessage("Error!");
             e.printStackTrace();

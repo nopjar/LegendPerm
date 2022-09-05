@@ -178,9 +178,12 @@ public class SignRepository extends Repository {
 
             statement.executeUpdate();
             try (ResultSet generatedKeys = statement.getGeneratedKeys()){
-                int key = generatedKeys.getInt(0);
-                if (key == 0)
+                if (!generatedKeys.next())
                     throw new SQLException("Unable to fetch new Key for sign at location " + location);
+                int key = generatedKeys.getInt(1);
+                if (key == 0) {
+                    throw new SQLException("Invalid Key for sign at location " + location);
+                }
 
                 return new Sign(key,
                         owner.getUuid(),
