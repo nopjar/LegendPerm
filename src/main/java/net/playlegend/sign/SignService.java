@@ -77,11 +77,13 @@ public class SignService extends Service {
                     continue;
                 Block block = location.getBlock();
                 if (!(block.getState() instanceof org.bukkit.block.Sign blockSign)) {
-                    try {
-                        signRepository.deleteSign(sign);
-                    } catch (SQLException e) {
-                        e.printStackTrace();
-                    }
+                    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                        try {
+                            signRepository.deleteSign(sign);
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                        }
+                    });
                     continue;
                 }
 

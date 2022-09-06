@@ -10,7 +10,6 @@ import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
-import net.playlegend.cache.PermissionCache;
 import net.playlegend.cache.UserCache;
 import net.playlegend.domain.User;
 import net.playlegend.permission.PermissionService;
@@ -33,7 +32,7 @@ public class PlayerListener implements Listener {
     }
 
     @EventHandler
-    private void onPlayerJoin(PlayerJoinEvent event) {
+    public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         event.joinMessage(null);
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -71,7 +70,7 @@ public class PlayerListener implements Listener {
     }
 
     @EventHandler
-    private void onPlayerLeave(@NotNull PlayerQuitEvent event) {
+    public void onPlayerLeave(@NotNull PlayerQuitEvent event) {
         Player player = event.getPlayer();
         // saving properties now as this is later needed in async (maybe no player object anymore)
         final String name = player.getName();
@@ -96,10 +95,10 @@ public class PlayerListener implements Listener {
     }
 
     @EventHandler
-    private void onPlayerChat(@NotNull AsyncChatEvent event) {
+    public void onPlayerChat(@NotNull AsyncChatEvent event) {
         try {
-            CacheService cacheService = plugin.getServiceRegistry().get(CacheService.class);
-            User user = cacheService.get(UserCache.class)
+            User user = plugin.getServiceRegistry().get(CacheService.class)
+                    .get(UserCache.class)
                     .get(event.getPlayer().getUniqueId())
                     .orElseThrow();
 

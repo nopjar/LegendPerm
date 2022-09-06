@@ -12,8 +12,13 @@ import org.joda.time.format.PeriodFormatterBuilder;
 public class TimeParser {
 
     private final String string;
+    private final LocalDateTime base;
     private LocalDateTime localDateTime;
-    private LocalDateTime base;
+
+    public TimeParser(@NotNull LocalDateTime base) {
+        this.string = "";
+        this.base = base;
+    }
 
     public TimeParser(@NotNull String string, @NotNull LocalDateTime base) {
         this.string = string;
