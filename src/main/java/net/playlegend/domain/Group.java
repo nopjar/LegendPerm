@@ -68,8 +68,11 @@ public class Group extends Publisher<Group.Operation, Group> {
     public void addPermission(Permission permission) {
         boolean contains = false;
         boolean update = false;
+        // go through all permissions to check if group already has permission and if so, check if
+        //  mode is the same
         for (Permission groupPerm : this.permissions) {
             if (groupPerm.getNode().equalsIgnoreCase(permission.getNode())) {
+                // found permission, checking for mode
                 contains = true;
                 if (groupPerm.getMode() != permission.getMode()) {
                     groupPerm.setMode(permission.getMode());
@@ -78,9 +81,11 @@ public class Group extends Publisher<Group.Operation, Group> {
                 break;
             }
         }
+        // if group does not already contain the permission: add to set
         if (!contains)
             update = this.permissions.add(permission);
 
+        // if set was modified: notify subscribers
         if (update)
             this.notifySubscribers(Operation.PERMISSION_CHANGE, this);
     }

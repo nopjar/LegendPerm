@@ -41,6 +41,7 @@ class RemoveUserFromGroupCommand implements Command<Object> {
             return 1;
         }
 
+        // fetch command data
         String userName = context.getArgument("userName", String.class);
         String groupName = context.getArgument("groupName", String.class);
         String time = getArgumentOrDefault(context, "time", String.class, null);
@@ -49,6 +50,12 @@ class RemoveUserFromGroupCommand implements Command<Object> {
         replacements.put("user_name", userName);
         replacements.put("group_name", groupName);
         replacements.put("time", time);
+
+        // check that group is not the default group, which can't be removed from a user!
+        if (groupName.equalsIgnoreCase("default")) {
+            sender.sendMessage(messages.groupProtected.parse(replacements));
+            return 1;
+        }
 
         try {
             CacheService cacheService = plugin.getServiceRegistry().get(CacheService.class);

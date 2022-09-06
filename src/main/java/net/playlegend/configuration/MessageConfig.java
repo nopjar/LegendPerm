@@ -25,6 +25,7 @@ public class MessageConfig implements Configuration {
     private static final String PATH_GROUP_DOES_NOT_CONTAIN_PERMISSION = "group_does_not_contain_permission";
     private static final String PATH_GROUP_PERMISSION_REVOKED = "group_permission_revoked";
     private static final String PATH_GROUP_LIST = "group_list";
+    private static final String PATH_GROUP_PROTECTED = "group_protected";
 
     private static final String PATH_UNKNOWN_USER = "unknown_user";
     private static final String PATH_USER_ALREADY_PERMANENT_IN_GROUP = "user_already_permanent_in_group";
@@ -56,6 +57,7 @@ public class MessageConfig implements Configuration {
     @NotNull public final Message groupDoesNotContainPermission;
     @NotNull public final Message groupPermissionRevoked;
     @NotNull public final Message groupList;
+    @NotNull public final Message groupProtected;
 
     @NotNull public final Message unknownUser;
     @NotNull public final Message userAlreadyPermanentInGroup;
@@ -88,6 +90,7 @@ public class MessageConfig implements Configuration {
         this.groupDoesNotContainPermission = new Message(yaml.getString(PATH_GROUP_DOES_NOT_CONTAIN_PERMISSION, ""));
         this.groupPermissionRevoked = new Message(yaml.getString(PATH_GROUP_PERMISSION_REVOKED, ""));
         this.groupList = new Message(yaml.getString(PATH_GROUP_LIST, ""));
+        this.groupProtected = new Message(yaml.getString(PATH_GROUP_PROTECTED, ""));
 
         this.unknownUser = new Message(yaml.getString(PATH_UNKNOWN_USER, ""));
         this.userAlreadyPermanentInGroup = new Message(yaml.getString(PATH_USER_ALREADY_PERMANENT_IN_GROUP, ""));

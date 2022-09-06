@@ -15,6 +15,7 @@ group_unknown_property: "Unknown property: <key>"
 group_does_not_contain_permission: "Group <group_name> does not contain permission <permission_node>!"
 group_permission_revoked: "You successfully revoked <permission_node> from <group_name>."
 group_list: "<groups>"
+group_protected: "You can't delete or remove this group!"
 
 unknown_user: "Unknown user: <user_name>"
 user_already_permanent_in_group: "User <user_name> is already permanent in group <group_name>"

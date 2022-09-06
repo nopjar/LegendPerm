@@ -35,6 +35,7 @@ class GroupCreateCommand implements Command<Object> {
             return 1;
         }
 
+        // fetch all command data
         String groupName = context.getArgument("groupName", String.class);
         int weight = getArgumentOrDefault(context, "weight", Integer.class, 100);
         String prefix = ChatColor.translateAlternateColorCodes('&', getArgumentOrDefault(context, "prefix", String.class, ""));
@@ -50,12 +51,13 @@ class GroupCreateCommand implements Command<Object> {
             GroupCache groupCache = plugin.getServiceRegistry().get(CacheService.class)
                     .get(GroupCache.class);
 
-            // make sure to prevent SQLException
+            // check if group already exists
             if (groupCache.get(groupName).isPresent()) {
                 sender.sendMessage(messages.groupAlreadyExists.parse(replacements));
                 return 1;
             }
 
+            // save to db and refresh cache
             plugin.getServiceRegistry().get(RepositoryService.class)
                     .get(GroupRepository.class)
                     .createGroup(groupName, weight, prefix, suffix);

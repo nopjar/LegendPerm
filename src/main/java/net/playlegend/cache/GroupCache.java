@@ -25,7 +25,6 @@ public class GroupCache extends Cache<String, Optional<Group>> {
         CacheLoader<String, Optional<Group>> loader = new CacheLoader<>() {
             @Override
             public @NotNull Optional<Group> load(@NotNull String key) throws Exception {
-                System.out.println("Loading from db to cache: " + key);
                 return Optional.ofNullable(plugin.getServiceRegistry()
                         .get(RepositoryService.class)
                         .get(GroupRepository.class)

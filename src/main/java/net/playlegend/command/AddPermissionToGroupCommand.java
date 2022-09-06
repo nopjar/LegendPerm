@@ -36,6 +36,7 @@ class AddPermissionToGroupCommand implements Command<Object> {
             return 1;
         }
 
+        // get command data and fill replacements
         String groupName = context.getArgument("groupName", String.class);
         String permissionNode = context.getArgument("permissionNode", String.class);
         boolean mode = context.getArgument("mode", Boolean.class);
@@ -45,6 +46,7 @@ class AddPermissionToGroupCommand implements Command<Object> {
         replacements.put("permission_mode", mode);
 
         try {
+            // fetch group to add permission to
             Optional<Group> cacheResult = plugin.getServiceRegistry().get(CacheService.class)
                     .get(GroupCache.class)
                     .get(groupName);
@@ -55,12 +57,14 @@ class AddPermissionToGroupCommand implements Command<Object> {
             }
 
             Group group = cacheResult.get();
+            // check if group already has permission
             Permission permission = new Permission(permissionNode, mode);
             if (group.getPermissions().contains(permission)) {
                 sender.sendMessage(messages.groupDoesAlreadyContainPermission.parse(replacements));
                 return 1;
             }
 
+            // save to db
             plugin.getServiceRegistry().get(RepositoryService.class)
                     .get(GroupRepository.class)
                     .updatePermissionInGroup(group, permission);

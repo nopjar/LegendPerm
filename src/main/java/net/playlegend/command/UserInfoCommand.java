@@ -42,11 +42,13 @@ class UserInfoCommand implements Command<Object> {
             return 1;
         }
 
+        // fetch command data
         String userName = context.getArgument("userName", String.class);
         Map<String, Object> replacements = new HashMap<>();
         replacements.put("user_name", userName);
 
         try {
+            // fetch user
             Optional<User> cacheResult = plugin.getServiceRegistry().get(CacheService.class)
                     .get(UserCache.class)
                     .get(userName);

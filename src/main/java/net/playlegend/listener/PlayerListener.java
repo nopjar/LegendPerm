@@ -116,7 +116,6 @@ public class PlayerListener implements Listener {
             ChatRenderer renderer = new CustomChatRenderer(user.getMainGroup().getPrefix());
             event.renderer(renderer);
         } catch (ExecutionException e) {
-            // TODO: 02/09/2022 notify player?
             e.printStackTrace();
         }
     }

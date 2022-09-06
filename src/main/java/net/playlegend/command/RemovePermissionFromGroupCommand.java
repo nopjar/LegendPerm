@@ -36,6 +36,7 @@ class RemovePermissionFromGroupCommand implements Command<Object> {
             return 1;
         }
 
+        // fetch command data
         String groupName = context.getArgument("groupName", String.class);
         String permissionNode = context.getArgument("permissionNode", String.class);
 
@@ -44,6 +45,7 @@ class RemovePermissionFromGroupCommand implements Command<Object> {
         replacements.put("permission_node", permissionNode);
 
         try {
+            // fetch group
             Optional<Group> cacheResult = plugin.getServiceRegistry().get(CacheService.class)
                     .get(GroupCache.class)
                     .get(groupName);
@@ -53,6 +55,7 @@ class RemovePermissionFromGroupCommand implements Command<Object> {
                 return 1;
             }
 
+            // check if group has permission
             Group group = cacheResult.get();
             boolean found = false;
             for (Permission permission : group.getPermissions()) {
@@ -66,6 +69,7 @@ class RemovePermissionFromGroupCommand implements Command<Object> {
                 return 1;
             }
 
+            // save change to db
             plugin.getServiceRegistry().get(RepositoryService.class)
                     .get(GroupRepository.class)
                     .revokePermissionFromGroup(group, permissionNode);

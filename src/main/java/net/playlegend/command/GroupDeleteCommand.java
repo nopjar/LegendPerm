@@ -36,20 +36,30 @@ class GroupDeleteCommand implements Command<Object> {
             return 1;
         }
 
+        // fetch command data
         String groupName = context.getArgument("groupName", String.class);
         Map<String, Object> replacements = new HashMap<>();
         replacements.put("group_name", groupName);
 
+        // check that group is not the default group, which can't be deleted!
+        if (groupName.equalsIgnoreCase("default")) {
+            sender.sendMessage(messages.groupProtected.parse(replacements));
+            return 1;
+        }
+
         try {
+            // fetch group
             GroupCache groupCache = plugin.getServiceRegistry().get(CacheService.class)
                     .get(GroupCache.class);
             Optional<Group> cacheResult = groupCache.get(groupName);
 
+            // check if group exists
             if (cacheResult.isEmpty()) {
                 sender.sendMessage(messages.groupDoesNotExist.parse(replacements));
                 return 1;
             }
 
+            // delete group and release from cache
             Group group = cacheResult.get();
             plugin.getServiceRegistry().get(RepositoryService.class)
                     .get(GroupRepository.class)

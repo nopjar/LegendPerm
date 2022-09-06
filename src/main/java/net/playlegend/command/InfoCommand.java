@@ -43,6 +43,7 @@ class InfoCommand implements Command<Object> {
         }
 
         try {
+            // fetch user info
             Optional<User> cacheResult = plugin.getServiceRegistry().get(CacheService.class)
                     .get(UserCache.class)
                     .get(player.getUniqueId());

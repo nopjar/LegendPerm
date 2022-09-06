@@ -32,11 +32,13 @@ class GroupInfoCommand implements Command<Object> {
             return 1;
         }
 
+        // fetch command data
         String groupName = context.getArgument("groupName", String.class);
         Map<String, Object> replacements = new HashMap<>();
         replacements.put("group_name", groupName);
 
         try {
+            // fetch group
             Optional<Group> cacheResult = plugin.getServiceRegistry().get(CacheService.class)
                     .get(GroupCache.class)
                     .get(groupName);

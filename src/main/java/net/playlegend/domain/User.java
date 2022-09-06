@@ -44,7 +44,7 @@ public class User extends Publisher<User.Operation, User> {
 
     public void updateValidUntil(Group group, long validUntil) {
         Long prev = this.groups.get(group);
-        // there is nothing like from temporary to permanent!
+        // there is nothing like from permanent to temporary
         if (prev != 0 && validUntil == 0) {
             this.groups.replace(group, validUntil);
             this.notifySubscribers(Operation.GROUP_CHANGE_TO_PERMANENT, this);

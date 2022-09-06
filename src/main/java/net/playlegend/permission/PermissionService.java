@@ -44,10 +44,14 @@ public class PermissionService extends Service {
     }
 
     public void processPlayerJoin(@NotNull Player player, @NotNull Map<Group, Long> groups) throws ExecutionException {
+        // get attachment
         PermissionAttachment attachment = plugin.getServiceRegistry().get(CacheService.class)
                 .get(PermissionCache.class)
                 .get(player.getUniqueId());
 
+        // check if user has any timed group, if so we need to run a user specific thread to check
+        //  if time is over
+        // also add permissions to player object
         boolean hasTimedGroups = false;
         for (Map.Entry<Group, Long> entry : groups.entrySet()) {
             if (!hasTimedGroups)
@@ -62,6 +66,7 @@ public class PermissionService extends Service {
         }
         player.recalculatePermissions();
 
+        // if player has timed group, start thread like mentioned before
         if (hasTimedGroups) {
             UserCache userCache = plugin.getServiceRegistry().get(CacheService.class)
                     .get(UserCache.class);
@@ -82,6 +87,7 @@ public class PermissionService extends Service {
         PermissionCache permissionCache = plugin.getServiceRegistry().get(CacheService.class)
                 .get(PermissionCache.class);
 
+        // remove from cache
         permissionCache.get(uuid).remove();
         permissionCache.release(uuid);
 
@@ -93,6 +99,9 @@ public class PermissionService extends Service {
     }
 
     public void processTemporaryGroupChange(User user) {
+        // check if user now contains a temporary group. If so, start a custom thread to watch group
+        // if not already running.
+        // otherwise if user does not have any timed group anymore: stop the thread
         boolean containsTemporary = false;
         for (Long value : user.getGroups().values()) {
             if (value != 0) {
@@ -103,6 +112,7 @@ public class PermissionService extends Service {
         boolean runsTask = this.taskIds.containsKey(user.getUuid());
 
         if (containsTemporary && !this.taskIds.containsKey(user.getUuid())) {
+            // start thread
             UserCache userCache = plugin.getServiceRegistry().get(CacheService.class)
                     .get(UserCache.class);
             UserRepository userRepository = plugin.getServiceRegistry().get(RepositoryService.class)
@@ -115,6 +125,7 @@ public class PermissionService extends Service {
 
             this.taskIds.put(user.getUuid(), taskId);
         } else if (!containsTemporary && runsTask) {
+            // stop thread
             Bukkit.getScheduler().cancelTask(this.taskIds.get(user.getUuid()));
             this.taskIds.remove(user.getUuid());
         }
@@ -154,6 +165,7 @@ public class PermissionService extends Service {
     }
 
     public void updateUser(User user) throws ExecutionException {
+        // fetch attachment
         PermissionAttachment attachment = plugin.getServiceRegistry().get(CacheService.class)
                 .get(PermissionCache.class)
                 .get(user.getUuid());
@@ -161,6 +173,7 @@ public class PermissionService extends Service {
         Map<String, Boolean> permissions = attachment.getPermissions();
         List<String> donePermissions = new ArrayList<>(permissions.size());
 
+        // go through all permissions of user and apply them to the player object
         for (Group group : user.getGroups().keySet()) {
             for (Permission permission : group.getPermissions()) {
                 if (donePermissions.contains(permission.getNode())) continue;
@@ -174,6 +187,8 @@ public class PermissionService extends Service {
             }
         }
 
+        // any permissions, which are set on the player object, but are not in the groups of the
+        //  user anymore: remove them
         for (String permissionNode : permissions.keySet()) {
             attachment.unsetPermission(permissionNode);
         }
