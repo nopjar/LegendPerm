@@ -6,12 +6,15 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
 import net.playlegend.cache.GroupCache;
 import net.playlegend.cache.UserCache;
+import net.playlegend.configuration.MessageConfig;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.User;
 import net.playlegend.repository.RepositoryService;
@@ -23,9 +26,11 @@ import org.jetbrains.annotations.NotNull;
 class RemoveUserFromGroupCommand implements Command<Object> {
 
     private final LegendPerm plugin;
+    private final MessageConfig messages;
 
-    public RemoveUserFromGroupCommand(LegendPerm plugin) {
+    public RemoveUserFromGroupCommand(LegendPerm plugin, MessageConfig messages) {
         this.plugin = plugin;
+        this.messages = messages;
     }
 
     @Override
@@ -36,20 +41,25 @@ class RemoveUserFromGroupCommand implements Command<Object> {
         String groupName = context.getArgument("groupName", String.class);
         String time = getArgumentOrDefault(context, "time", String.class, null);
 
+        Map<String, Object> replacements = new HashMap<>();
+        replacements.put("user_name", userName);
+        replacements.put("group_name", groupName);
+        replacements.put("time", time);
+
         try {
             CacheService cacheService = plugin.getServiceRegistry().get(CacheService.class);
             Optional<User> cacheResult = cacheService.get(UserCache.class)
                     .get(userName);
             // check if user exists
             if (cacheResult.isEmpty()) {
-                sender.sendMessage("Unknown User!");
+                sender.sendMessage(messages.unknownUser.parse(replacements));
                 return 1;
             }
             User user = cacheResult.get();
 
             // check if user has group
             if (!user.hasGroup(groupName)) {
-                sender.sendMessage("User does not have group!");
+                sender.sendMessage(messages.userDoesNotHaveGroup.parse(replacements));
                 return 1;
             }
 
@@ -64,12 +74,12 @@ class RemoveUserFromGroupCommand implements Command<Object> {
             if (time == null) {
                 userRepository.removeUserFromGroup(user.getUuid(), group.getName());
                 user.removeGroup(group);
-                sender.sendMessage("User " + user.getName() + " removed from Group " + group.getName() + ".");
+                sender.sendMessage(messages.userRemovedFromGroup.parse(replacements));
                 return 0;
             }
 
             if (user.hasGroupPermanent(groupName)) {
-                sender.sendMessage("Can't remove time from Group as user has the group permanent!");
+                sender.sendMessage(messages.userCantReduceGroupAsPermanent.parse(replacements));
                 return 0;
             }
 
@@ -81,7 +91,7 @@ class RemoveUserFromGroupCommand implements Command<Object> {
             if (newValidUntilDT.isBefore(now)) {
                 userRepository.removeUserFromGroup(user.getUuid(), group.getName());
                 user.removeGroup(group);
-                sender.sendMessage("User " + user.getName() + " removed from Group " + group.getName() + ".");
+                sender.sendMessage(messages.userRemovedFromGroup.parse(replacements));
                 return 0;
             }
             long validUntil = user.getGroupValidUntil(groupName) - seconds;
@@ -89,10 +99,11 @@ class RemoveUserFromGroupCommand implements Command<Object> {
             // save to database
             userRepository.addUserToGroup(user.getUuid(), group.getName(), validUntil);
             user.updateValidUntil(group, validUntil);
-            sender.sendMessage(user.getName() + " grouptime reduced to " + TimeParser.epochSecondsToInline(validUntil) + ".");
+            replacements.put("time_reduced", TimeParser.epochSecondsToInline(validUntil));
+            sender.sendMessage(messages.userGroupTimeReduced.parse(replacements));
         } catch (SQLException | ExecutionException e) {
             e.printStackTrace();
-            sender.sendMessage("An unexpected error occurred!");
+            sender.sendMessage(messages.unexpectedError.parse(replacements));
         }
 
         return 1;

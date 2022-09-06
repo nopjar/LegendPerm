@@ -14,6 +14,8 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import java.util.concurrent.CompletableFuture;
 import net.playlegend.LegendPerm;
+import net.playlegend.configuration.ConfigurationService;
+import net.playlegend.configuration.MessageConfig;
 import net.playlegend.domain.Group;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -29,68 +31,53 @@ class CommandTreeConstructor {
     }
 
     public LiteralArgumentBuilder<Object> construct() {
+        MessageConfig config = plugin.getServiceRegistry()
+                .get(ConfigurationService.class)
+                .get(MessageConfig.class);
         return literal("lp")
-                .then(literal("test")
-                        .then(argument("user", string())
-                                .then(argument("perm", string())
-                                        .executes(context -> {
-                                            CommandSender sender = (CommandSender) context.getSource();
-                                            Player player = Bukkit.getServer().getPlayerExact(context.getArgument("user", String.class));
-                                            if (player == null) {
-                                                sender.sendMessage("Player not online!");
-                                                return 1;
-                                            }
-
-                                            boolean has = player.hasPermission(context.getArgument("perm", String.class));
-                                            sender.sendMessage("Has: " + (has ? "§aTrue" : "§cFalse"));
-                                            return 1;
-                                        })
-                                )
-                        )
-                )
                 .then(literal("info")
-                        .executes(new InfoCommand(plugin))
+                        .executes(new InfoCommand(plugin, config))
                 )
                 .then(literal("group")
                         .then(literal("list")
-                                .executes(new ShowAllGroupsCommand(plugin))
+                                .executes(new ShowAllGroupsCommand(plugin, config))
                         )
                         .then(argument("groupName", string()).suggests(new CustomTooltip("groupName"))
                                 .then(literal("create")
-                                        .executes(new GroupCreateCommand(plugin))
+                                        .executes(new GroupCreateCommand(plugin, config))
                                         .then(argument("weight", integer()).suggests(new CustomTooltip("weight"))
-                                                .executes(new GroupCreateCommand(plugin))
+                                                .executes(new GroupCreateCommand(plugin, config))
                                                 .then(argument("prefix", string()).suggests(new CustomTooltip("prefix"))
-                                                        .executes(new GroupCreateCommand(plugin))
+                                                        .executes(new GroupCreateCommand(plugin, config))
                                                         .then(argument("suffix", string()).suggests(new CustomTooltip("suffix"))
-                                                                .executes(new GroupCreateCommand(plugin))
+                                                                .executes(new GroupCreateCommand(plugin, config))
                                                         )
                                                 )
                                         )
                                 )
                                 .then(literal("delete")
-                                        .executes(new GroupDeleteCommand(plugin))
+                                        .executes(new GroupDeleteCommand(plugin, config))
                                 )
                                 .then(literal("info")
-                                        .executes(new GroupInfoCommand(plugin))
+                                        .executes(new GroupInfoCommand(plugin, config))
                                 )
                                 .then(literal("add")
                                         .then(argument("permissionNode", string()).suggests(new CustomTooltip("permissionNode"))
                                                 .then(argument("mode", bool()).suggests(new CustomTooltip("mode"))
-                                                        .executes(new AddPermissionToGroupCommand(plugin))
+                                                        .executes(new AddPermissionToGroupCommand(plugin, config))
                                                 )
                                         )
                                 )
                                 .then(literal("remove")
                                         .then(argument("permissionNode", string()).suggests(new CustomTooltip("permissionNode"))
-                                                .executes(new RemovePermissionFromGroupCommand(plugin))
+                                                .executes(new RemovePermissionFromGroupCommand(plugin, config))
                                         )
                                 )
                                 .then(literal("set")
                                         .then(argument("key", string()).suggests(new CustomSuggestions(Group.Property.VALUES_AS_STRINGS))
-                                                .executes(new GroupSetPropertyCommand(plugin))
+                                                .executes(new GroupSetPropertyCommand(plugin, config))
                                                 .then(argument("value", string()).suggests(new CustomTooltip("value"))
-                                                        .executes(new GroupSetPropertyCommand(plugin))
+                                                        .executes(new GroupSetPropertyCommand(plugin, config))
                                                 )
                                         )
                                 )
@@ -99,21 +86,21 @@ class CommandTreeConstructor {
                 .then(literal("user")
                         .then(argument("userName", string()).suggests(new CustomTooltip("userName"))
                                 .then(literal("info")
-                                        .executes(new UserInfoCommand(plugin))
+                                        .executes(new UserInfoCommand(plugin, config))
                                 )
                                 .then(literal("add")
                                         .then(argument("groupName", string()).suggests(new CustomTooltip("groupName"))
-                                                .executes(new AddUserToGroupCommand(plugin))
+                                                .executes(new AddUserToGroupCommand(plugin, config))
                                                 .then(argument("time", string()).suggests(new CustomTooltip("time"))
-                                                        .executes(new AddUserToGroupCommand(plugin))
+                                                        .executes(new AddUserToGroupCommand(plugin, config))
                                                 )
                                         )
                                 )
                                 .then(literal("remove")
                                         .then(argument("groupName", string()).suggests(new CustomTooltip("groupName"))
-                                                .executes(new RemoveUserFromGroupCommand(plugin))
+                                                .executes(new RemoveUserFromGroupCommand(plugin, config))
                                                 .then(argument("time", string()).suggests(new CustomTooltip("time"))
-                                                        .executes(new RemoveUserFromGroupCommand(plugin))
+                                                        .executes(new RemoveUserFromGroupCommand(plugin, config))
                                                 )
                                         )
                                 )

@@ -5,12 +5,16 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
 import net.playlegend.cache.GroupCache;
 import net.playlegend.cache.UserCache;
+import net.playlegend.configuration.MessageConfig;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.User;
 import net.playlegend.repository.RepositoryService;
@@ -22,9 +26,11 @@ import org.jetbrains.annotations.NotNull;
 class AddUserToGroupCommand implements Command<Object> {
 
     private final LegendPerm plugin;
+    private final MessageConfig messages;
 
-    public AddUserToGroupCommand(LegendPerm plugin) {
+    public AddUserToGroupCommand(LegendPerm plugin, MessageConfig messages) {
         this.plugin = plugin;
+        this.messages = messages;
     }
 
     @Override
@@ -34,6 +40,9 @@ class AddUserToGroupCommand implements Command<Object> {
         String userName = context.getArgument("userName", String.class);
         String groupName = context.getArgument("groupName", String.class);
         String time = getArgumentOrDefault(context, "time", String.class, null);
+        Map<String, Object> replacements = new HashMap<>();
+        replacements.put("user_name", userName);
+        replacements.put("group_name", groupName);
 
         try {
             CacheService cacheService = plugin.getServiceRegistry().get(CacheService.class);
@@ -44,7 +53,7 @@ class AddUserToGroupCommand implements Command<Object> {
             Optional<User> userCacheResult = cacheService.get(UserCache.class)
                     .get(userName);
             if (userCacheResult.isEmpty()) {
-                sender.sendMessage("Unknown User!");
+                sender.sendMessage(messages.unknownUser.parse(replacements));
                 return 1;
             }
             User user = userCacheResult.get();
@@ -54,7 +63,7 @@ class AddUserToGroupCommand implements Command<Object> {
             long currentTime = 0;
             if (user.hasGroup(groupName)) {
                 if (user.hasGroupPermanent(groupName)) {
-                    sender.sendMessage("User is already permanent is this group!");
+                    sender.sendMessage(messages.userAlreadyPermanentInGroup.parse(replacements));
                     return 1;
                 } else {
                     currentTime = user.getGroupValidUntil(groupName);
@@ -67,7 +76,7 @@ class AddUserToGroupCommand implements Command<Object> {
             // check for existence of group to give
             // this checks the case that the user just didn't have the group
             if (groupCacheResult.isEmpty()) {
-                sender.sendMessage("Group does not exist!");
+                sender.sendMessage(messages.groupDoesNotExist.parse(replacements));
                 return 1;
             }
 
@@ -89,13 +98,14 @@ class AddUserToGroupCommand implements Command<Object> {
             userRepository.addUserToGroup(user.getUuid(), group.getName(), validUntil);
             user.addGroup(group, validUntil);
             if (validUntil == 0) {
-                sender.sendMessage("Added " + user.getName() + " permanently to group " + group.getName() + "!");
+                sender.sendMessage(messages.userAddedPermanentToGroup.parse(replacements));
             } else {
-                sender.sendMessage("Added " + user.getName() + " until " + TimeParser.epochSecondsToInline(validUntil) + ".");
+                replacements.put("time", TimeParser.localDateTimeFromEpochSeconds(validUntil).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                sender.sendMessage(messages.userAddedTemporaryToGroup.parse(replacements));
             }
         } catch (SQLException | ExecutionException e) {
             e.printStackTrace();
-            sender.sendMessage("An unexpected error occurred!");
+            sender.sendMessage(messages.unexpectedError.parse(replacements));
         }
 
         return 1;

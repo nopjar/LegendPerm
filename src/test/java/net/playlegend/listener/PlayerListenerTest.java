@@ -18,6 +18,7 @@ import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
 import net.playlegend.cache.UserCache;
+import net.playlegend.configuration.MessageConfig;
 import net.playlegend.domain.Group;
 import net.playlegend.domain.User;
 import net.playlegend.permission.PermissionService;
@@ -25,6 +26,7 @@ import net.playlegend.repository.RepositoryService;
 import net.playlegend.repository.UserRepository;
 import net.playlegend.service.ServiceRegistry;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -68,6 +70,7 @@ class PlayerListenerTest {
         User user = mock(User.class);
         UUID uuid = UUID.randomUUID();
         Group group = mock(Group.class);
+        YamlConfiguration yamlConfiguration = mock(YamlConfiguration.class);
 
         when(player.getUniqueId())
                 .thenReturn(uuid);
@@ -92,11 +95,15 @@ class PlayerListenerTest {
                 .thenReturn(group);
         when(group.getPrefix())
                 .thenReturn("");
+        when(yamlConfiguration.getString(any(), any()))
+                .thenReturn("");
 
         bukkitMock.when(Bukkit::getScheduler)
                 .thenReturn(scheduler);
 
-        new PlayerListener(plugin).onPlayerJoin(event);
+        MessageConfig config = new MessageConfig(yamlConfiguration);
+
+        new PlayerListener(plugin, config).onPlayerJoin(event);
 
         ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
         verify(scheduler).runTaskAsynchronously(any(Plugin.class), captor.capture());
@@ -122,6 +129,7 @@ class PlayerListenerTest {
         User user = mock(User.class);
         UUID uuid = UUID.randomUUID();
         Group group = mock(Group.class);
+        YamlConfiguration yamlConfiguration = mock(YamlConfiguration.class);
 
         when(player.getUniqueId())
                 .thenReturn(uuid);
@@ -151,11 +159,15 @@ class PlayerListenerTest {
                 .thenReturn("test");
         when(group.getPrefix())
                 .thenReturn("");
+        when(yamlConfiguration.getString(any(), any()))
+                .thenReturn("");
 
         bukkitMock.when(Bukkit::getScheduler)
                 .thenReturn(scheduler);
 
-        new PlayerListener(plugin).onPlayerJoin(event);
+        MessageConfig config = new MessageConfig(yamlConfiguration);
+
+        new PlayerListener(plugin, config).onPlayerJoin(event);
 
         ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
         verify(scheduler).runTaskAsynchronously(any(Plugin.class), captor.capture());
@@ -178,6 +190,7 @@ class PlayerListenerTest {
         User user = mock(User.class);
         UUID uuid = UUID.randomUUID();
         Group group = mock(Group.class);
+        YamlConfiguration yamlConfiguration = mock(YamlConfiguration.class);
 
         when(event.getPlayer())
                 .thenReturn(player);
@@ -197,11 +210,15 @@ class PlayerListenerTest {
                 .thenReturn(group);
         when(group.getPrefix())
                 .thenReturn("");
+        when(yamlConfiguration.getString(any(), any()))
+                .thenReturn("");
 
         bukkitMock.when(Bukkit::getScheduler)
                 .thenReturn(scheduler);
 
-        new PlayerListener(plugin).onPlayerLeave(event);
+        MessageConfig config = new MessageConfig(yamlConfiguration);
+
+        new PlayerListener(plugin, config).onPlayerLeave(event);
 
         ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
         verify(scheduler).runTaskAsynchronously(any(Plugin.class), captor.capture());
@@ -220,6 +237,7 @@ class PlayerListenerTest {
         UUID uuid = UUID.randomUUID();
         Player player = mock(Player.class);
         Group group = mock(Group.class);
+        YamlConfiguration yamlConfiguration = mock(YamlConfiguration.class);
 
         when(plugin.getServiceRegistry())
                 .thenReturn(serviceRegistry);
@@ -235,8 +253,12 @@ class PlayerListenerTest {
                 .thenReturn(uuid);
         when(user.getMainGroup())
                 .thenReturn(group);
+        when(yamlConfiguration.getString(any(), any()))
+                .thenReturn("");
 
-        new PlayerListener(plugin).onPlayerChat(event);
+        MessageConfig config = new MessageConfig(yamlConfiguration);
+
+        new PlayerListener(plugin, config).onPlayerChat(event);
 
         verify(event).renderer(any());
     }

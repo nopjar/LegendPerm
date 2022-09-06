@@ -4,10 +4,13 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
 import net.playlegend.cache.GroupCache;
+import net.playlegend.configuration.MessageConfig;
 import net.playlegend.repository.GroupRepository;
 import net.playlegend.repository.RepositoryService;
 import org.bukkit.ChatColor;
@@ -17,9 +20,11 @@ import org.jetbrains.annotations.NotNull;
 class GroupCreateCommand implements Command<Object> {
 
     private final LegendPerm plugin;
+    private final MessageConfig messages;
 
-    public GroupCreateCommand(LegendPerm plugin) {
+    public GroupCreateCommand(LegendPerm plugin, MessageConfig messages) {
         this.plugin = plugin;
+        this.messages = messages;
     }
 
     @Override
@@ -31,13 +36,19 @@ class GroupCreateCommand implements Command<Object> {
         String prefix = ChatColor.translateAlternateColorCodes('&', getArgumentOrDefault(context, "prefix", String.class, ""));
         String suffix = ChatColor.translateAlternateColorCodes('&', getArgumentOrDefault(context, "suffix", String.class, ""));
 
+        Map<String, Object> replacements = new HashMap<>();
+        replacements.put("group_name", groupName);
+        replacements.put("group_weight", weight);
+        replacements.put("group_prefix", prefix);
+        replacements.put("group_suffix", suffix);
+
         try {
             GroupCache groupCache = plugin.getServiceRegistry().get(CacheService.class)
                     .get(GroupCache.class);
 
             // make sure to prevent SQLException
             if (groupCache.get(groupName).isPresent()) {
-                sender.sendMessage("Group " + groupName + " already exists!");
+                sender.sendMessage(messages.groupAlreadyExists.parse(replacements));
                 return 1;
             }
 
@@ -46,10 +57,10 @@ class GroupCreateCommand implements Command<Object> {
                     .createGroup(groupName, weight, prefix, suffix);
             groupCache.refresh(groupName);
 
-            sender.sendMessage("Group created! " + groupName);
+            sender.sendMessage(messages.groupCreated.parse(replacements));
         } catch (SQLException | ExecutionException e) {
             e.printStackTrace();
-            sender.sendMessage("An unexpected error occurred!");
+            sender.sendMessage(messages.unexpectedError.parse(replacements));
         }
 
         return 1;

@@ -31,11 +31,14 @@ public class CacheService extends Service {
                 100L); // TODO: 02/09/2022 make it configurable
 
         // fetch all groups and put them into the cache
-        try {
-            get(GroupCache.class).preload();
-        } catch (SQLException e) {
-            throw new ServiceInitializeException(e);
-        }
+        //  doing this with a schedular causes the
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                get(GroupCache.class).preload();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     @Override

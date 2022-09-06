@@ -3,6 +3,8 @@ package net.playlegend.listener;
 import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -11,6 +13,7 @@ import net.kyori.adventure.text.Component;
 import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
 import net.playlegend.cache.UserCache;
+import net.playlegend.configuration.MessageConfig;
 import net.playlegend.domain.User;
 import net.playlegend.permission.PermissionService;
 import net.playlegend.repository.RepositoryService;
@@ -26,9 +29,11 @@ import org.jetbrains.annotations.NotNull;
 public class PlayerListener implements Listener {
 
     private final LegendPerm plugin;
+    private final MessageConfig messages;
 
-    public PlayerListener(LegendPerm plugin) {
+    public PlayerListener(LegendPerm plugin, MessageConfig messages) {
         this.plugin = plugin;
+        this.messages = messages;
     }
 
     @EventHandler
@@ -62,7 +67,10 @@ public class PlayerListener implements Listener {
                 plugin.getServiceRegistry().get(PermissionService.class)
                         .processPlayerJoin(player, user.getGroups());
 
-                Bukkit.broadcast(Component.text("[" + user.getMainGroup().getPrefix() + "§r] §e" + player.getName() + " joined!"));
+                Map<String, Object> replacements = new HashMap<>();
+                replacements.put("group_prefix", user.getMainGroup().getPrefix());
+                replacements.put("user_name", user.getName());
+                Bukkit.broadcast(Component.text(messages.broadcast_online.parse(replacements)));
             } catch (SQLException | ExecutionException e) {
                 e.printStackTrace();
             }
@@ -73,7 +81,6 @@ public class PlayerListener implements Listener {
     public void onPlayerLeave(@NotNull PlayerQuitEvent event) {
         Player player = event.getPlayer();
         // saving properties now as this is later needed in async (maybe no player object anymore)
-        final String name = player.getName();
         final UUID uuid = player.getUniqueId();
         event.quitMessage(null);
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -86,7 +93,11 @@ public class PlayerListener implements Listener {
                 plugin.getServiceRegistry().get(PermissionService.class)
                         .processPlayerLeave(uuid);
 
-                Bukkit.broadcast(Component.text("[" + user.getMainGroup().getPrefix() + "§r] §e" + name + " left!"));
+                Map<String, Object> replacements = new HashMap<>();
+                replacements.put("group_prefix", user.getMainGroup().getPrefix());
+                replacements.put("user_name", user.getName());
+                Bukkit.broadcast(Component.text(messages.broadcast_offline.parse(replacements)));
+
                 userCache.release(uuid);
             } catch (ExecutionException e) {
                 e.printStackTrace();

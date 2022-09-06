@@ -4,11 +4,14 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
 import net.playlegend.cache.GroupCache;
+import net.playlegend.configuration.MessageConfig;
 import net.playlegend.domain.Group;
 import net.playlegend.repository.GroupRepository;
 import net.playlegend.repository.RepositoryService;
@@ -18,9 +21,11 @@ import org.jetbrains.annotations.NotNull;
 class GroupDeleteCommand implements Command<Object> {
 
     private final LegendPerm plugin;
+    private final MessageConfig messages;
 
-    public GroupDeleteCommand(LegendPerm plugin) {
+    public GroupDeleteCommand(LegendPerm plugin, MessageConfig messages) {
         this.plugin = plugin;
+        this.messages = messages;
     }
 
     @Override
@@ -28,6 +33,8 @@ class GroupDeleteCommand implements Command<Object> {
         CommandSender sender = (CommandSender) context.getSource();
 
         String groupName = context.getArgument("groupName", String.class);
+        Map<String, Object> replacements = new HashMap<>();
+        replacements.put("group_name", groupName);
 
         try {
             GroupCache groupCache = plugin.getServiceRegistry().get(CacheService.class)
@@ -35,7 +42,7 @@ class GroupDeleteCommand implements Command<Object> {
             Optional<Group> cacheResult = groupCache.get(groupName);
 
             if (cacheResult.isEmpty()) {
-                sender.sendMessage("Group " + groupName + " does not exist!");
+                sender.sendMessage(messages.groupDoesNotExist.parse(replacements));
                 return 1;
             }
 
@@ -46,10 +53,10 @@ class GroupDeleteCommand implements Command<Object> {
 
             group.delete();
             groupCache.release(groupName);
-            sender.sendMessage("Group " + group.getName() + " deleted!");
+            sender.sendMessage(messages.groupDeleted.parse(replacements));
         } catch (SQLException | ExecutionException e) {
             e.printStackTrace();
-            sender.sendMessage("An unexpected error occurred!");
+            sender.sendMessage(messages.unexpectedError.parse(replacements));
         }
 
         return 1;

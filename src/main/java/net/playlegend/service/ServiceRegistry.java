@@ -1,11 +1,14 @@
 package net.playlegend.service;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
 import net.playlegend.command.CommandService;
 import net.playlegend.configuration.Config;
+import net.playlegend.configuration.ConfigurationService;
 import net.playlegend.exception.ServiceInitializeException;
 import net.playlegend.listener.ListenerService;
 import net.playlegend.permission.PermissionService;
@@ -16,10 +19,11 @@ public class ServiceRegistry {
 
     private final Map<Class<? extends Service>, Service> services;
 
-    public ServiceRegistry(LegendPerm plugin, Config config) {
-        this.services = new ConcurrentHashMap<>();
+    public ServiceRegistry(LegendPerm plugin) {
+        this.services = Collections.synchronizedMap(new LinkedHashMap<>());
 
-        this.services.put(RepositoryService.class, new RepositoryService(plugin, config));
+        this.services.put(ConfigurationService.class, new ConfigurationService(plugin));
+        this.services.put(RepositoryService.class, new RepositoryService(plugin));
         this.services.put(CacheService.class, new CacheService(plugin));
         this.services.put(CommandService.class, new CommandService(plugin));
         this.services.put(ListenerService.class, new ListenerService(plugin));
