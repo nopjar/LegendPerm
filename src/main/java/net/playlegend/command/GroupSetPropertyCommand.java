@@ -31,6 +31,10 @@ class GroupSetPropertyCommand implements Command<Object> {
     @Override
     public int run(CommandContext<Object> context) throws CommandSyntaxException {
         CommandSender sender = (CommandSender) context.getSource();
+        if (!sender.hasPermission("legendperm.group.update")) {
+            sender.sendMessage(messages.notPermitted.get());
+            return 1;
+        }
 
         String groupName = context.getArgument("groupName", String.class);
         String key = context.getArgument("key", String.class);

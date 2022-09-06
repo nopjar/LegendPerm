@@ -36,6 +36,10 @@ class AddUserToGroupCommand implements Command<Object> {
     @Override
     public int run(@NotNull CommandContext<Object> context) throws CommandSyntaxException {
         CommandSender sender = (CommandSender) context.getSource();
+        if (!sender.hasPermission("legendperm.user.addgroup")) {
+            sender.sendMessage(messages.notPermitted.get());
+            return 1;
+        }
 
         String userName = context.getArgument("userName", String.class);
         String groupName = context.getArgument("groupName", String.class);

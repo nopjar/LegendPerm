@@ -25,6 +25,10 @@ class ShowAllGroupsCommand implements Command<Object> {
     @Override
     public int run(CommandContext<Object> context) throws CommandSyntaxException {
         CommandSender sender = (CommandSender) context.getSource();
+        if (!sender.hasPermission("legendperm.group.list")) {
+            sender.sendMessage(messages.notPermitted.get());
+            return 1;
+        }
 
         try {
             List<String> names = plugin.getServiceRegistry()

@@ -30,6 +30,10 @@ class GroupCreateCommand implements Command<Object> {
     @Override
     public int run(@NotNull CommandContext<Object> context) throws CommandSyntaxException {
         CommandSender sender = (CommandSender) context.getSource();
+        if (!sender.hasPermission("legendperm.group.create")) {
+            sender.sendMessage(messages.notPermitted.get());
+            return 1;
+        }
 
         String groupName = context.getArgument("groupName", String.class);
         int weight = getArgumentOrDefault(context, "weight", Integer.class, 100);

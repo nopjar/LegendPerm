@@ -9,6 +9,7 @@ public class MessageConfig implements Configuration {
 
     private static final String PATH_UNEXPECTED_ERROR = "unexpected_error";
     private static final String PATH_ONLY_PLAYER = "only_player";
+    private static final String PATH_NOT_PERMITTED = "not_permitted";
     private static final String PATH_BROADCAST_ONLINE = "broadcast_online";
     private static final String PATH_BROADCAST_OFFLINE = "broadcast_offline";
 
@@ -38,6 +39,7 @@ public class MessageConfig implements Configuration {
     private static final String PATH_USER_CANT_REDUCE_GROUP_AS_PERMANENT = "user_cant_reduce_group_as_permanent";
 
     @NotNull public final Message unexpectedError;
+    @NotNull public final Message notPermitted;
     @NotNull public final Message onlyPlayer;
     @NotNull public final Message broadcast_online;
     @NotNull public final Message broadcast_offline;
@@ -69,6 +71,7 @@ public class MessageConfig implements Configuration {
 
     public MessageConfig(@NotNull YamlConfiguration yaml) {
         this.unexpectedError = new Message(yaml.getString(PATH_UNEXPECTED_ERROR, ""));
+        this.notPermitted = new Message(yaml.getString(PATH_NOT_PERMITTED, ""));
         this.onlyPlayer = new Message(yaml.getString(PATH_ONLY_PLAYER, ""));
         this.broadcast_online = new Message(yaml.getString(PATH_BROADCAST_ONLINE, ""));
         this.broadcast_offline = new Message(yaml.getString(PATH_BROADCAST_OFFLINE, ""));

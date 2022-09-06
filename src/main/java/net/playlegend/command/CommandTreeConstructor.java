@@ -17,9 +17,6 @@ import net.playlegend.LegendPerm;
 import net.playlegend.configuration.ConfigurationService;
 import net.playlegend.configuration.MessageConfig;
 import net.playlegend.domain.Group;
-import org.bukkit.Bukkit;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 class CommandTreeConstructor {

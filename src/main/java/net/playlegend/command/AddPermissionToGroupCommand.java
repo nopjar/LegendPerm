@@ -31,6 +31,10 @@ class AddPermissionToGroupCommand implements Command<Object> {
     @Override
     public int run(CommandContext<Object> context) throws CommandSyntaxException {
         CommandSender sender = (CommandSender) context.getSource();
+        if (!sender.hasPermission("legendperm.group.addpermission")) {
+            sender.sendMessage(messages.notPermitted.get());
+            return 1;
+        }
 
         String groupName = context.getArgument("groupName", String.class);
         String permissionNode = context.getArgument("permissionNode", String.class);

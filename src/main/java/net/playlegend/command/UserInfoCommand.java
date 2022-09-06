@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import net.kyori.adventure.text.Component;
 import net.playlegend.LegendPerm;
 import net.playlegend.cache.CacheService;
 import net.playlegend.cache.UserCache;
@@ -38,6 +37,10 @@ class UserInfoCommand implements Command<Object> {
     @Override
     public int run(@NotNull CommandContext<Object> context) throws CommandSyntaxException {
         CommandSender sender = (CommandSender) context.getSource();
+        if (!sender.hasPermission("legendperm.user.infoother")) {
+            sender.sendMessage(messages.notPermitted.get());
+            return 1;
+        }
 
         String userName = context.getArgument("userName", String.class);
         Map<String, Object> replacements = new HashMap<>();

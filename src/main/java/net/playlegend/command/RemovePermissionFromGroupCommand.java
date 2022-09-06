@@ -6,7 +6,6 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import net.playlegend.LegendPerm;
@@ -32,6 +31,10 @@ class RemovePermissionFromGroupCommand implements Command<Object> {
     @Override
     public int run(CommandContext<Object> context) throws CommandSyntaxException {
         CommandSender sender = (CommandSender) context.getSource();
+        if (!sender.hasPermission("legendperm.group.removepermission")) {
+            sender.sendMessage(messages.notPermitted.get());
+            return 1;
+        }
 
         String groupName = context.getArgument("groupName", String.class);
         String permissionNode = context.getArgument("permissionNode", String.class);
