@@ -41,6 +41,10 @@ public class SignService extends Service {
         Bukkit.getScheduler().runTask(plugin, () -> {
             for (Sign sign : signs) {
                 Location location = sign.getAsBukkitLocation();
+                // world does not exist (anymore), doing nothing as the world may be added to the server
+                //  later again
+                if (location == null)
+                    continue;
                 Block block = location.getBlock();
                 if (!(block.getState() instanceof org.bukkit.block.Sign blockSign)) {
                     Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -64,22 +68,28 @@ public class SignService extends Service {
                 .get(SignRepository.class);
         List<Sign> signs = signRepository.selectSignsByUser(user.getUuid());
 
-        for (Sign sign : signs) {
-            Location location = sign.getAsBukkitLocation();
-            if (location == null) {
-                // TODO: 04/09/2022 do something
-                continue;
-            }
-            Block block = location.getBlock();
-            if (!(block.getState() instanceof org.bukkit.block.Sign blockSign)) {
-                signRepository.deleteSign(sign);
-                continue;
-            }
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            for (Sign sign : signs) {
+                Location location = sign.getAsBukkitLocation();
+                // world does not exist (anymore), doing nothing as the world may be added to the server
+                //  later again
+                if (location == null)
+                    continue;
+                Block block = location.getBlock();
+                if (!(block.getState() instanceof org.bukkit.block.Sign blockSign)) {
+                    try {
+                        signRepository.deleteSign(sign);
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
+                    continue;
+                }
 
-            blockSign.line(1, Component.text(user.getMainGroup().getPrefix()));
-            blockSign.line(2, Component.text(user.getName()));
-            blockSign.update();
-        }
+                blockSign.line(1, Component.text(user.getMainGroup().getPrefix()));
+                blockSign.line(2, Component.text(user.getName()));
+                blockSign.update();
+            }
+        });
     }
 
 }

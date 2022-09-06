@@ -29,6 +29,11 @@ public class SignRepository extends Repository {
             """;
 
     @Language("MariaDB")
+    private static final String SELECT_SIGNS_BY_LOCATION = SELECT_SIGNS_BY + """
+            WHERE world = ? AND x = ? AND y = ? AND Z = ?;
+            """;
+
+    @Language("MariaDB")
     private static final String SELECT_SIGNS_BY_WORLD = SELECT_SIGNS_BY + """
             WHERE world = ?;
             """;
@@ -53,6 +58,34 @@ public class SignRepository extends Repository {
     public SignRepository(LegendPerm plugin, DataSource dataSource) {
         super(plugin, dataSource);
     }
+
+    public Sign selectSignByLocation(@NotNull Location location) throws SQLException {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(SELECT_SIGNS_BY_LOCATION)) {
+
+            statement.setString(1, location.getWorld().getName());
+            statement.setInt(2, location.getBlockX());
+            statement.setInt(3, location.getBlockY());
+            statement.setInt(4, location.getBlockZ());
+
+            try (ResultSet set = statement.executeQuery()) {
+                if (!set.next())
+                    return null;
+
+                return new Sign(
+                        set.getInt("id"),
+                        UUID.fromString(set.getString("user_id")),
+                        set.getString("group"),
+                        set.getString("world"),
+                        set.getInt("x"),
+                        set.getInt("y"),
+                        set.getInt("z")
+                );
+            }
+
+        }
+    }
+
 
     public List<Sign> selectSignsByUser(@NotNull UUID uuid) throws SQLException {
         try (Connection connection = dataSource.getConnection();
@@ -177,7 +210,7 @@ public class SignRepository extends Repository {
             statement.setInt(6, location.getBlockZ());
 
             statement.executeUpdate();
-            try (ResultSet generatedKeys = statement.getGeneratedKeys()){
+            try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
                 if (!generatedKeys.next())
                     throw new SQLException("Unable to fetch new Key for sign at location " + location);
                 int key = generatedKeys.getInt(1);
